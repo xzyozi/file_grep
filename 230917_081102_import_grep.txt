@@ -1,0 +1,124 @@
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\old\open_imagegui.py  -----
+  line1 : import requests 
+  line2 : import PySimpleGUI as sg 
+  line3 : from PIL import Image 
+  line4 : from io import BytesIO 
+  line5 : from lxml import html 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\demo_tabs.py  -----
+  line2 : import sys 
+  line3 : import PySimpleGUI as sg 
+  line4 : # import PySimpleGUIWeb as sg 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\old\open_imagegui2.py  -----
+  line1 : import requests 
+  line2 : import PySimpleGUI as sg 
+  line3 : from PIL import Image 
+  line4 : from io import BytesIO 
+  line5 : from lxml import html 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\photo\gif_cv.py  -----
+  line1 : import cv2 
+  line2 : import PySimpleGUI as sg 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\thread\sc_thread.py  -----
+  line1 : import threading 
+  line2 : import time  
+  line3 : from lxml import html 
+  line4 : from datetime import datetime 
+  line5 : import requests 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\df_create_csv.py  -----
+  line1 : import pandas as pd 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\os\os_folderMake.py  -----
+  line1 : import os  
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\old\open_imagegui3.py  -----
+  line1 : import requests 
+  line2 : import PySimpleGUI as sg 
+  line3 : from PIL import Image 
+  line4 : from io import BytesIO 
+  line5 : from lxml import html 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\thread\threadpool_sample.py  -----
+  line1 : from concurrent.futures import ThreadPoolExecutor 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\dual_windowGui_sample.py  -----
+  line1 : import PySimpleGUI as sg 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\os\setup.py  -----
+  line4 : import sys, os 
+  line5 : from cx_Freeze import setup, Executable 
+  line17 : #importして使っているライブラリを記載 
+  line20 : #importして使っているライブラリを記載（こちらの方が軽くなるという噂） 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\old\open_imagegui4.py  -----
+  line1 : import requests,time 
+  line2 : import PySimpleGUI as sg 
+  line3 : from PIL import Image 
+  line4 : from io import BytesIO 
+  line5 : from lxml import html 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\thread\thread_sample.py  -----
+  line1 : import time 
+  line2 : import threading 
+  line3 : from datetime import datetime 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\dual_windowGui_sample2.py  -----
+  line1 : import PySimpleGUI as sg 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\os\setup_easy.py  -----
+  line4 : import sys 
+  line5 : from cx_Freeze import setup, Executable 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\old\open_imagegui5.py  -----
+  line1 : import requests,time 
+  line2 : import PySimpleGUI as sg 
+  line3 : from PIL import Image 
+  line4 : from io import BytesIO 
+  line5 : from lxml import html 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sc\csv_none_del.py  -----
+  line1 : import csv 
+  line2 : import pandas as pd 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\font_search_gui.py  -----
+  line12 : import PySimpleGUI as sg 
+  line17 : import pyperclip 
+  line23 : import pyautogui as pg 
+  line28 : import threading 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\gui_progerss.py  -----
+  line4 : import PySimpleGUI as sg 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\image_aspect.py  -----
+  line1 : from PIL import Image 
+  line2 : import requests 
+  line3 : from io import BytesIO 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sc\posterlounge_found.py  -----
+  line1 : from lxml import html 
+  line2 : import requests 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\img_error.py  -----
+  line1 : import requests,time 
+  line2 : from PIL import Image,ImageDraw, ImageFont 
+  line3 : from io import BytesIO 
+  line4 : from lxml import html 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sc\posterlounge_foundv2.py  -----
+  line1 : from lxml import html 
+  line2 : import requests 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sample\open_imagegui_sample.py  -----
+  line1 : import requests 
+  line2 : import PySimpleGUI as sg 
+  line3 : from PIL import Image 
+  line4 : from io import BytesIO 
+  line5 : from lxml import html 
+  line6 : import time 
+
+file name : C:\Users\xzyoi\Desktop\python\old\kaiga\sc\sampl_csvEd.py  -----
+  line1 : import csv 
+

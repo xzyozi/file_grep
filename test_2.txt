@@ -1,0 +1,24 @@
+textfile name : panel-techshine-p0700095a.c
+  line51 : static const struct i2c_device_id techshine_panel_i2c_id[] = { 
+  line55 : MODULE_DEVICE_TABLE(i2ic, techshine_panel_i2c_id); 
+  line57 : static int techshine_panel_i2c_probe(struct i2c_client *i2c, 
+  line58 :         const struct i2c_device_id *id) 
+  line63 :         const struct regmap_config *regmap_config = &techshine_panel_i2c_regmap; 
+  line84 : static int techshine_panel_i2c_remove(struct i2c_client *i2c) 
+  line89 : static struct i2c_driver techshine_panel_i2c_driver = { 
+  line94 :         .probe          = techshine_panel_i2c_probe, 
+  line95 :         .remove         = techshine_panel_i2c_remove, 
+  line96 :         .id_table       = techshine_panel_i2c_id, 
+  line98 : module_i2c_driver(techshine_panel_i2c_driver); 
+textfile name : panel-techshine-p0700095a.c
+  line51 : static const struct i2c_device_id techshine_panel_i2c_id[] = { 
+  line55 : MODULE_DEVICE_TABLE(i2ic, techshine_panel_i2c_id); 
+  line57 : static int techshine_panel_i2c_probe(struct i2c_client *i2c, 
+  line58 :         const struct i2c_device_id *id) 
+  line63 :         const struct regmap_config *regmap_config = &techshine_panel_i2c_regmap; 
+  line84 : static int techshine_panel_i2c_remove(struct i2c_client *i2c) 
+  line89 : static struct i2c_driver techshine_panel_i2c_driver = { 
+  line94 :         .probe          = techshine_panel_i2c_probe, 
+  line95 :         .remove         = techshine_panel_i2c_remove, 
+  line96 :         .id_table       = techshine_panel_i2c_id, 
+  line98 : module_i2c_driver(techshine_panel_i2c_driver); 

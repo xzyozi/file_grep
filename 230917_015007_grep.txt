@@ -1,0 +1,22 @@
+file name : .\meta-pew-baseboard\recipes-bsp\u-boot\u-boot-imx\0001-u-boot-imx8mn-pew.patch  -----
+  line1107 : +u8 num_image_type_guids = ARRAY_SIZE(fw_images); 
+
+file name : .\meta-pew-baseboard\recipes-bsp\u-boot\u-boot-imx\0001-u-boot-imx8mn-pew_bk.patch  -----
+  line1107 : +u8 num_image_type_guids = ARRAY_SIZE(fw_images); 
+
+file name : .\meta-pew-baseboard\recipes-kernel\linux\linux-imx\0001-linux-imx8mn-pew.patch  -----
+  line2348 : +		/* add new command: reset guitar */ 
+  line2349 : +		gtp_reset_guitar(gt_client, 20); 
+  line3184 : +void gtp_reset_guitar(struct i2c_client *client, s32 ms) 
+  line3304 : +		gtp_reset_guitar(ts->client, 20); 
+  line3770 : +	gtp_reset_guitar(data->client, 20); 
+  line4489 : +	gtp_reset_guitar(ts->client, 20); 
+  line4670 : +		gtp_reset_guitar(ts->client, 10); 
+  line4711 : +			gtp_reset_guitar(ts->client, 20); 
+  line4945 : +		gtp_reset_guitar(ts->client, 50); 
+  line5404 : +extern void gtp_reset_guitar(struct i2c_client *client, s32 ms); 
+  line5426 : +extern void gtp_reset_guitar(struct i2c_client *client, s32 ms); 
+  line5729 : +	/* step3:RST output high reset guitar */ 
+  line5782 : +	gtp_reset_guitar(i2c_connect_client, 20); 
+  line7527 : +			(void *)NULL, "guitar_update"); 
+
