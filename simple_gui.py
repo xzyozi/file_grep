@@ -38,6 +38,7 @@ class Find_text_gui():
         [sg.Text("Enter Folder Path:")],
         [sg.InputText(key="-FOLDER_PATH-"), sg.FolderBrowse()],
         [sg.InputText(key="-SERACH_TEXT-",default_text="import", right_click_menu= self.right_click_menu_jp),sg.Text("grep text here")],
+        [sg.Checkbox("Enable Regular Expression", key="-REGEX_ENABLED-", default=False)],
         [sg.Button("Read Folder"), sg.Button("Exit")],
         [sg.Text(size=(60, 10), key="-OUTPUT-")]
         ]
@@ -128,7 +129,14 @@ class Find_text_gui():
                     
                     fd_text = values["-SERACH_TEXT-"]
                     self.window["-OUTPUT-"].update("")
-                    #another file 
+                    regex_enabled = values["-REGEX_ENABLED-"]
+                    
+                    if regex_enabled :
+                        fd_text = r"\b{}\b".format(fd_text)
+                    
+                    print(fd_text)
+
+                    #output file make sure
                     OUTPUT_TEXT_PATH = self.output_text_path_make(fd_text)
 
                     # print(fd_text,OUTPUT_TEXT_PATH)

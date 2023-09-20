@@ -71,7 +71,9 @@ def fd_text_serch(lines : list, FD_TEXT : str, start : int) -> list:
     
     return result_box
 
-def process_files_in_directory(path, text_to_find, OUTPUT_TEXT_PATH):
+
+
+def process_files_in_directory(path, text_to_find, OUTPUT_TEXT_PATH) -> None:
     count = 0
     for filename in os.listdir(path):
         # print(f"-------------------------------{filename}")

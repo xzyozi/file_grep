@@ -2,6 +2,7 @@ import os , threading
 import chardet
 import logging
 import datetime
+import re
 from rich.logging import RichHandler
 from rich import print
 
@@ -62,23 +63,34 @@ def output_text_path_make() -> str:
 #-------------------------------------------------------------
 
 # thread mode function -----------------------------------------------
-def fd_text_serch(lines : list, FD_TEXT : str, start : int) -> list:
+
+
+def fd_text_serch(lines : list, FD_TEXT : str, start : int, search_mode : int = 0) -> list:
+    # search_mode information -------------------
+    # search_mode = 0 : search in all files
+    # search_mode = 1 : Regular Expression search_mode
+
     result_box = []
     for line_num, text_line in enumerate(lines, start):
-        if FD_TEXT in text_line :
-            insert_text = f"  line{line_num} : {text_line} "
-            result_box.append(insert_text)
-    
+        if search_mode == 0:
+            if FD_TEXT in text_line :
+                insert_text = f"  line{line_num} : {text_line} "
+                result_box.append(insert_text)
+        
+        elif search_mode == 1:
+            if bool(re.search(re.compile(fr"{FD_TEXT}"), text_line)) :
+                insert_text = f"  line{line_num} : {text_line} "
+                result_box.append(insert_text)
     return result_box
 
 
 
-def process_files_in_directory(path, text_to_find, OUTPUT_TEXT_PATH) -> None:
+def process_files_in_directory(path, text_to_find, OUTPUT_TEXT_PATH, write_line_text :bool= True) -> None:
     count = 0
     for filename in os.listdir(path):
         # print(f"-------------------------------{filename}")
         if os.path.isfile(os.path.join(path, filename)):
-            count += find_text_srch(filename, path, text_to_find, OUTPUT_TEXT_PATH)
+            count += find_text_srch(filename, path, text_to_find, OUTPUT_TEXT_PATH, write_line_text)
     
     # Append the result to the global list
     thread_results.append(count)
@@ -86,7 +98,7 @@ def process_files_in_directory(path, text_to_find, OUTPUT_TEXT_PATH) -> None:
 # ----------------------------------------------------------------
 
 # find text --------------------------------------------------
-def find_text_srch(filename, path, FD_TEXT, OUTPUT_TEXT_PATH, write_line_text :bool= True) -> int :
+def find_text_srch(filename, path, FD_TEXT, OUTPUT_TEXT_PATH, write_line_text :bool= True, search_mode : int = 0) -> int :
     # print(filename)
     logging.debug(filename)
     root,ext = os.path.splitext(filename)
@@ -182,25 +194,10 @@ def find_text_srch(filename, path, FD_TEXT, OUTPUT_TEXT_PATH, write_line_text :b
         pre_slice = lines[:half_lines_len]
         end_slice = lines[half_lines_len:]
 
-        # for line_num, text_line in enumerate(lines, start=1):
-        #     fd_flg = FD_TEXT in text_line
-        #     if fd_flg == True :
-        #         if fst_cnt == 0:
-        #             with open(OUTPUT_TEXT_PATH, 'a') as f:
-                    
-        #                 f.write(f"textfile name : {path}\{filename}\n")
-        #                 fst_cnt += 1
-        #                 try :
-        #                     f.write(f"  line{line_num} : {text_line} \n")
-        #                 except :return 0
-                        
-        #         else :
-        #             with open(OUTPUT_TEXT_PATH, 'a') as f:
-                    
-        #                 f.write(f"  line{line_num} : {text_line} \n")
         
         pre_box, end_box = [], []
 
+        # Save lines with "fd_text" in each thread to list
         pre_thread = threading.Thread(target= lambda:pre_box.extend( fd_text_serch(pre_slice,FD_TEXT,start=1)) )
         end_thread = threading.Thread(target= lambda:end_box.extend( fd_text_serch(end_slice,FD_TEXT,start=half_lines_len + 1)) )
 
@@ -228,7 +225,7 @@ def find_text_srch(filename, path, FD_TEXT, OUTPUT_TEXT_PATH, write_line_text :b
             # filename = filename.replace("(", r"\(").replace(")", r"\)")
 
 
-            filename_line = fr"file name : {path}\{filename}  -----"
+            filename_line = fr"find file : {path}\{filename}  -----"
             with output_file_lock:  # Acquire the lock before writing to the output file
                 with open(OUTPUT_TEXT_PATH, 'a') as f:
                     f.write(f"{filename_line}\n")
@@ -245,55 +242,38 @@ def find_text_srch(filename, path, FD_TEXT, OUTPUT_TEXT_PATH, write_line_text :b
                             f.write(f"\n") 
 
                     # ---------------------------------------
-                    
-                    #output_string = " ".join(map(str, file_lst))
-                    #fd_file.append(output_string)
 
-                    #matched_lines.append(line_num)
-            # if matched_lines != []:
-            #     try :
-            #         with open('test_2.txt', 'a') as f:
-            #             write_text = f"{i} {matched_lines}"
-            #             f.write(f"{write_text}\n")
-            #             count += 1
-            #     except PermissionError : print("file may be open")                    
-
-
-        # except UnicodeDecodeError:
-        #     logging.debug(f"Error decoding file: {filename}")
-
-        # lines_strip = [line.strip() for line in lines]
-        # print(lines_strip)
-    
-    #logging.debug(bool(fst_cnt == 1))
-    #return bool(fst_cnt == 1)
     return match_file
 # --------------------------------------------------------------
 
 
 #print(files)
 #for filename in files:
-def find_text_grep(PATH, FD_TEXT, OUTPUT_TEXT_PATH) -> int :
+def find_text_grep(PATH, FD_TEXT, OUTPUT_TEXT_PATH, write_line_text : bool = True, search_mode : int= 0 ) -> int :
     # logging_function()
     count = 0
     now1 = datetime.datetime.now()
 
     # output_file_lock = threading.Lock()
 
-    # thread_results = []
-    
-    # for path, _, files in os.walk(PATH):
-        
-        
+    # # 直下のファイルを処理
+    # for file in os.listdir(PATH):
+    #     full_path = os.path.join(PATH, file)
 
-        # if find_text_srch(filename,path,FD_TEXT) == True: count+=1
-        # else: pass
-        # for filename in files:
-        #     count += \
-        #     find_text_srch(filename, path, FD_TEXT, OUTPUT_TEXT_PATH)
+    #     if os.path.isfile(full_path):
+    #         count += \
+    #         find_text_srch(file, PATH, FD_TEXT, OUTPUT_TEXT_PATH)
 
+    execute_once = True
     threads = []
     for root, dirs, _ in os.walk(PATH):
+        if execute_once == True:
+        
+            execute_once = False
+            thread = threading.Thread(target=process_files_in_directory, args=(root, FD_TEXT, OUTPUT_TEXT_PATH, write_line_text))
+            threads.append(thread)
+            thread.start()
+
         for directory in dirs:
             full_path = os.path.join(root, directory)
             
@@ -301,14 +281,14 @@ def find_text_grep(PATH, FD_TEXT, OUTPUT_TEXT_PATH) -> int :
             full_path = full_path.replace("\\", "/").strip()
             
 
-            thread = threading.Thread(target=process_files_in_directory, args=(full_path, FD_TEXT, OUTPUT_TEXT_PATH))
+            thread = threading.Thread(target=process_files_in_directory, args=(full_path, FD_TEXT, OUTPUT_TEXT_PATH, write_line_text))
             threads.append(thread)
             thread.start()
 
     for thread in threads:
         thread.join()
 
-    count = sum(thread_results)
+    count += sum(thread_results)
 
 
     
