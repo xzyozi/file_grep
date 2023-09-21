@@ -6,7 +6,7 @@ import logging
 from rich.logging import RichHandler
 
 # +----- my py -------------------------------------+
-import sec_f_grep_3
+import sec_f_grep_5
 
 # debug ------------------------------------------------
 # Create RichHandler and set it as a log handler
@@ -111,15 +111,17 @@ class FindTextGUI(wx.Frame):
         # Bind the "Process" button to the on_read_folder method.
         self.Bind(wx.EVT_BUTTON, self.on_read_folder, process_btn)
 
-        # Create a checkbox for enabling regular expressions.
-        self.regex_checkbox = wx.CheckBox(self.panel, label="Enable Regular Expression")
-
+        # Create a checkbox 
+        self.regex_checkbox     = wx.CheckBox(self.panel, label="Enable Regular Expression")
+        self.writeLine_checkbox = wx.CheckBox(self.panel, label="Enable Write Line")
+        self.writeLine_checkbox.SetValue(True)
         # Create a multi-line text control for displaying output.
         self.output_text = wx.TextCtrl(self.panel, style=wx.TE_MULTILINE | wx.TE_READONLY, size=(300, 100))
         self.output_text.SetLabel("")  # Set the initial label of the output text control to an empty string.
 
         # Add the checkbox and output text control to hbox3.
-        hbox3.Add(self.regex_checkbox)
+        hbox3.Add(self.regex_checkbox, flag= wx.LEFT | wx.RIGHT | wx.TOP, border=10)
+        hbox3.Add(self.writeLine_checkbox, flag= wx.LEFT | wx.RIGHT | wx.TOP, border=10)
         hbox3.Add(self.output_text, proportion=1, flag=wx.TOP | wx.EXPAND)
 
         # Add the horizontal box sizers and other elements to the vertical box sizer.
@@ -138,7 +140,7 @@ class FindTextGUI(wx.Frame):
         now_time = datetime.datetime.now()
         file_name = now_time.strftime("%Y%m%d_%H%M%S")
         file_name = file_name[2:]
-        OUTPUT_TEXT_PATH = f"./{file_name}_{fd_text}_grep.txt"
+        OUTPUT_TEXT_PATH = fr"./{file_name}_{fd_text}_grep.txt"
         return OUTPUT_TEXT_PATH
 
     def open_text_editor(self, file_path: str) -> None:
@@ -180,7 +182,7 @@ class FindTextGUI(wx.Frame):
         dialog.Destroy()
 
     def on_read_folder(self, event):
-        search_mode = 0
+        
         
         folder_path = self.folder_path.GetValue()
         folder_path = fr"{folder_path}"
@@ -188,13 +190,19 @@ class FindTextGUI(wx.Frame):
             folder_path = self.split_path_into_folders(folder_path)
             fd_text = self.search_text.GetValue()
             self.output_text.SetLabel("")
-            regex_enabled = self.regex_checkbox.GetValue()
-            if regex_enabled:
-                search_mode = 1
-            OUTPUT_TEXT_PATH = self.output_text_path_make(fd_text)
-            find_files_count = sec_f_grep_3.find_text_grep(folder_path, fd_text, OUTPUT_TEXT_PATH, search_mode)
+            
+            # Checkbox to value
+            write_line_text = self.writeLine_checkbox.GetValue()
+            regex_mode = self.regex_checkbox.GetValue()
+            
+            if regex_mode :
+                OUTPUT_TEXT_PATH = self.output_text_path_make("regex")
+            else :OUTPUT_TEXT_PATH = self.output_text_path_make(fd_text)
+            
+            find_files_count = sec_f_grep_5.find_text_grep(folder_path, fd_text, OUTPUT_TEXT_PATH, write_line_text, regex_mode)
+            
             if find_files_count > 0:
-                self.output_text.SetLabel(f"{OUTPUT_TEXT_PATH} \nfinish")
+                self.output_text.SetLabel(f"{OUTPUT_TEXT_PATH} \n finshed ")
                 self.open_text_editor(fr"./{OUTPUT_TEXT_PATH}")
         else:
             wx.LogError(f"{folder_path} is not a valid path.")
