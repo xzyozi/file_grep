@@ -140,7 +140,7 @@ class FindTextGUI(wx.Frame):
         now_time = datetime.datetime.now()
         file_name = now_time.strftime("%Y%m%d_%H%M%S")
         file_name = file_name[2:]
-        OUTPUT_TEXT_PATH = fr"./{file_name}_{fd_text}_grep.txt"
+        OUTPUT_TEXT_PATH = fr"./output/{file_name}_{fd_text}_grep.txt"
         return OUTPUT_TEXT_PATH
 
     def open_text_editor(self, file_path: str) -> None:
