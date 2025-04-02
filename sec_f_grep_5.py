@@ -66,11 +66,18 @@ def output_text_path_make() -> str:
 
 
 def fd_text_serch(lines : list, FD_TEXT : str, start : int, regex_mode : bool = False) -> list:
-    # regex_mode information -------------------
-    # regex_mode = False : search in all files
-    # regex_mode =  True : Regular Expression regex_mode
+    """
+    Search for the specified text in lines.
     
-    # print(regex_mode)
+    Args:
+        lines (list): List of lines to search.
+        search_text (str): Text to search for.
+        start (int): Starting line number.
+        regex_mode (bool, optional): Whether to use regex for search. Defaults to False.
+
+    Returns:
+        list: List of matching lines.
+    """
     result_box = []
     for line_num, text_line in enumerate(lines, start):
         if regex_mode == False:
@@ -88,6 +95,16 @@ def fd_text_serch(lines : list, FD_TEXT : str, start : int, regex_mode : bool = 
 
 
 def process_files_in_directory(path, text_to_find, OUTPUT_TEXT_PATH, write_line_text :bool= True, regex_mode :bool = False) -> None:
+    """
+    Process files in the specified directory and search for the specified text.
+    
+    Args:
+        path (str): Directory path.
+        text_to_find (str): Text to search for.
+        output_path (str): Output text file path.
+        write_line_text (bool, optional): Whether to write the matching lines to the output file. Defaults to True.
+        regex_mode (bool, optional): Whether to use regex for search. Defaults to False.
+    """
     count = 0
     for filename in os.listdir(path):
         # print(f"-------------------------------{filename}")
@@ -101,6 +118,20 @@ def process_files_in_directory(path, text_to_find, OUTPUT_TEXT_PATH, write_line_
 
 # find text --------------------------------------------------
 def find_text_srch(filename, path, FD_TEXT, OUTPUT_TEXT_PATH, write_line_text :bool= True, regex_mode :bool = False) -> int :
+    """
+    Perform a grep-like search for text in files within the specified directory.
+    
+    Args:
+        base_path (str): Base directory path.
+        search_text (str): Text to search for.
+        output_path (str): Output text file path.
+        write_line_text (bool, optional): Whether to write the matching lines to the output file. Defaults to True.
+        regex_mode (bool, optional): Whether to use regex for search. Defaults to False.
+    
+    Returns:
+        int: Total number of files with matching text.
+    
+    """
     # print(filename)
     logging.debug(filename)
     root,ext = os.path.splitext(filename)
