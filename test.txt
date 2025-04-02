@@ -1,3 +1,0 @@
-panel-olimex-lcd-olinuxino.c
-panel-raspberrypi-touchscreen.c
-panel-techshine-p0700095a.c
