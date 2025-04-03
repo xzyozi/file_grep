@@ -27,6 +27,9 @@ logging.basicConfig(level=logging.DEBUG, format='%(levelname)s: %(message)s', ha
 # +---------------------------------------------------------------
 
 class FindTextGUI(wx.Frame):
+
+    os.makedirs("./output",exist_ok=True)
+
     def __init__(self):
         # Initialize the GUI frame.
         super().__init__(None, title="Read Folder Contents", size=(400, 400))

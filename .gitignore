@@ -4,3 +4,5 @@
 /old/
 /output/
 /learn_re/
+__pycache__
+/conf/
