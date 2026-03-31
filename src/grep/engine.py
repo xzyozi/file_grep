@@ -5,6 +5,8 @@ import concurrent.futures
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Any
 
+from src.grep.office_parser import OfficeParser
+
 @dataclass
 class GrepResult:
     """Grep検索の単一ヒット結果を保持するデータクラス"""
@@ -132,7 +134,22 @@ class GrepEngine:
     ) -> List[GrepResult]:
         """単一のファイルをスキャンしてヒットした行を返します。"""
         results = []
-        
+        ext = os.path.splitext(file_path)[1].lower()
+
+        # Officeファイルの処理
+        if ext in ('.docx', '.xlsx'):
+            office_texts = OfficeParser.extract_text(file_path)
+            if office_texts:
+                for i, line in enumerate(office_texts, 1):
+                    if self._check_hit(line, search_text, regex_mode, pattern):
+                        results.append(GrepResult(
+                            file_path=file_path,
+                            line_number=i,
+                            line_content=f"[Office] {line}"
+                        ))
+                return results
+
+        # 通常のテキストファイルの処理
         # バイナリモードで読み込んで、手動で文字コード試行を行う（chardet不使用）
         raw_data = None
         try:
@@ -159,15 +176,7 @@ class GrepEngine:
 
         lines = content.splitlines()
         for i, line in enumerate(lines, 1):
-            is_hit = False
-            if regex_mode and pattern:
-                if pattern.search(line):
-                    is_hit = True
-            else:
-                if search_text in line:
-                    is_hit = True
-            
-            if is_hit:
+            if self._check_hit(line, search_text, regex_mode, pattern):
                 results.append(GrepResult(
                     file_path=file_path,
                     line_number=i,
@@ -175,3 +184,10 @@ class GrepEngine:
                 ))
                 
         return results
+
+    def _check_hit(self, line: str, search_text: str, regex_mode: bool, pattern: Optional[re.Pattern] = None) -> bool:
+        """指定された行が検索テキストにマッチするか判定します。"""
+        if regex_mode and pattern:
+            return bool(pattern.search(line))
+        else:
+            return search_text in line
