@@ -59,6 +59,12 @@ class GrepEngine:
         Returns:
             int: 合計ヒット数
         """
+        # 検索開始前に既に中断リクエストがあれば即座に終了
+        if self._stop_requested:
+            if on_complete:
+                on_complete(0)
+            return 0
+
         self._stop_requested = False
         all_files = self._collect_files(target_dir)
         total_files = len(all_files)
