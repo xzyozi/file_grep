@@ -1,4 +1,5 @@
 import os
+import zipfile
 import pytest
 from src.grep.engine import GrepEngine, GrepResult
 
@@ -19,6 +20,20 @@ def temp_test_files(tmp_path):
     bin_file = tmp_path / "test.bin"
     with open(bin_file, "wb") as f:
         f.write(b"\xff\xfe\xfd\x00\x01\x02")
+
+    # 最小構成の .docx (zip) を作成
+    docx_file = tmp_path / "test.docx"
+    with zipfile.ZipFile(docx_file, 'w') as zp:
+        # word/document.xml の構造を簡略化して作成
+        doc_xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Word Search Word</w:t></w:r></w:p></w:body></w:document>'
+        zp.writestr('word/document.xml', doc_xml)
+
+    # 最小構成の .xlsx (zip) を作成
+    xlsx_file = tmp_path / "test.xlsx"
+    with zipfile.ZipFile(xlsx_file, 'w') as zp:
+        # xl/sharedStrings.xml の構造を簡略化して作成
+        shared_xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1"><si><t>Excel Search Cell</t></si></sst>'
+        zp.writestr('xl/sharedStrings.xml', shared_xml)
         
     return tmp_path
 
@@ -113,3 +128,22 @@ class TestGrepEngine:
         
         # 検索前に stop しているので 0 ヒットになるはず
         assert hit_count == 0
+
+    def test_office_search(self, temp_test_files):
+        """Officeファイルが正しく検索できるか"""
+        engine = GrepEngine()
+        results = []
+        
+        def on_result(res):
+            results.append(res)
+            
+        # Wordの検索
+        engine.search(target_dir=str(temp_test_files), search_text="Word", on_result=on_result)
+        assert any("Word" in res.line_content for res in results)
+        assert any(res.file_path.endswith(".docx") for res in results)
+
+        # Excelの検索
+        results.clear()
+        engine.search(target_dir=str(temp_test_files), search_text="Excel", on_result=on_result)
+        assert any("Excel" in res.line_content for res in results)
+        assert any(res.file_path.endswith(".xlsx") for res in results)
