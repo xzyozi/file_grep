@@ -1,8 +1,31 @@
-/sample/
-/_pycache_/
-/wx_gui_before/
-/old/
-/output/
-/learn_re/
-__pycache__
-/conf/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.env
+
+# Ruff / Tools
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# JavaScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+!/.vscode/settings.json
+!/.vscode/launch.json
+
+# tmp
+output/
+sample/
+old/
