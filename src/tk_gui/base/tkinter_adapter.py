@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 class TkinterGUIAdapter:
     """
     Tkinterフレームワーク特有のロジックを管理するアダプタークラス。
-    GUIProtocol を満たし、UI とアプリ基盤 (Core) を繋ぎます。
     """
 
     def __init__(self, app_instance: BaseApplication) -> None:
@@ -31,16 +30,16 @@ class TkinterGUIAdapter:
 
         # テーマ管理の開始
         self.theme_manager = ThemeManager(self.root)
-        self.theme_manager.apply_theme('light')
+        
+        # 修正: 保存されている設定値を読み込み、起動時のテーマを決定する
+        initial_theme = self.app.settings_manager.get_setting("theme", "light")
+        self.theme_manager.apply_theme(initial_theme)
 
-        # 疎結合なエラーハンドラーの接続 (DI)
-        # log_and_show_error を呼び出した際、Tkinter のメッセージボックスが表示されるようにする。
+        # 疎結合なエラーハンドラーの接続
         register_ui_error_callback(self.show_error)
 
-        # メインウィンドウを生成し、アプリ基盤を渡す
+        # メインウィンドウを生成
         self.main_window = MainWindow(self.root, self.app)
-        
-        # 終了イベントのハンドリング
         self.main_window.protocol('WM_DELETE_WINDOW', self.quit)
         self.main_window.deiconify()
 
@@ -55,15 +54,16 @@ class TkinterGUIAdapter:
             self.theme_manager.apply_theme(theme_name)
 
     def show_message(self, title: str, message: str) -> None:
-        """インフォ形式のメッセージを表示します。"""
         messagebox.showinfo(title, message)
 
     def show_error(self, title: str, message: str) -> None:
-        """エラー形式のメッセージを表示します。"""
         messagebox.showerror(title, message)
 
     def quit(self) -> None:
-        """アプリケーションを安全に終了します。"""
+        """アプリケーションを終了し、設定を保存。"""
+        # アプリ基盤側に設定の最終保存を依頼
+        self.app.settings_manager.save_settings()
+        
         if self.root:
             self.root.quit()
             self.root.destroy()

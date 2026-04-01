@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING, Any, Dict, Optional, Callable
 
 from src.core.event_dispatcher import EventDispatcher
@@ -14,21 +15,27 @@ if TYPE_CHECKING:
 class BaseApplication:
     """
     アプリケーションのコア管理クラス。
-    GUIフレームワークに依存せず、すべての基盤サービスを集約します。
+    すべての定形サービスとパスの管理を行います。
     """
 
     def __init__(self, gui_adapter: Optional[GUIProtocol] = None) -> None:
-        # 1. 基盤サービスの構築
+        # プロジェクトルートの絶対パスを取得
+        self.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+        # 1. イベント管理
         self.event_dispatcher = EventDispatcher()
+        
+        # 2. 設定管理 (デフォルトで settings.json)
         self.settings_manager = SettingsManager(self.event_dispatcher)
         
-        # 2. 翻訳エンジンの初期化 (locales フォルダを指定)
-        self.translator = Translator(self.settings_manager, locales_dir="locales")
+        # 3. 翻訳エンジンの初期化 (絶対パスを使用)
+        locales_dir = os.path.join(self.root_dir, "locales")
+        self.translator = Translator(self.settings_manager, locales_dir=locales_dir)
         
-        # 3. GUIアダプターの保持
+        # 4. GUIアダプター
         self.gui: Optional[GUIProtocol] = gui_adapter
         
-        # 4. 検索エンジンの保持 (Mock / Real)
+        # 5. 検索エンジン (Mock / Real)
         self.engine: Optional[GrepEngineProtocol] = self._init_engine()
 
     def _init_engine(self) -> Optional[GrepEngineProtocol]:
@@ -44,23 +51,21 @@ class BaseApplication:
                 return None
 
     def set_gui(self, gui_adapter: GUIProtocol) -> None:
-        """後からGUIアダプターをセットします。"""
         self.gui = gui_adapter
 
     def run(self) -> None:
-        """
-        アプリケーションを起動します。
-        具体的なウィンドウの生成やループ開始は GUI アダプターに委譲します。
-        """
         if self.gui:
             self.gui.initialize()
+            
+            # 初期設定を反映させる（テーマ等）
+            initial_theme = self.settings_manager.get_setting("theme", "light")
+            if hasattr(self.gui, 'apply_theme'):
+                 self.gui.apply_theme(initial_theme) # type: ignore
+            
             self.gui.run()
-        else:
-            # サーバーモードやCLIモードなどのHeadless実行
-            pass
 
     def quit(self) -> None:
-        """安全にアプリケーションを終了します。"""
         if self.gui:
             self.gui.quit()
-        # 必要なら設定の最終保存など
+        # 終了時に設定を強制保存
+        self.settings_manager.save_settings()
