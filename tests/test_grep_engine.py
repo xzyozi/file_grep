@@ -118,16 +118,21 @@ class TestGrepEngine:
         """中断機能が動作するか"""
         engine = GrepEngine()
         
-        # 大量のファイルがある状況を想定するために、ループ中に stop をかける
-        # (このテストでは小規模だが、フラグが立つことを確認)
-        engine.stop()
+        # 検索中に stop をかけるためにコールバックを利用
+        results = []
+        def on_result(res):
+            results.append(res)
+            engine.stop()  # 1件見つかったら停止
+            
         hit_count = engine.search(
             target_dir=str(temp_test_files),
-            search_text="テスト"
+            search_text="テスト",
+            on_result=on_result
         )
         
-        # 検索前に stop しているので 0 ヒットになるはず
-        assert hit_count == 0
+        # 2つテストファイルがあるはずだが、1つ目で止まるので hit_count は 1 になるはず
+        # (スレッドのタイミングによっては2になる可能性もゼロではないが、基本は中断される)
+        assert hit_count < 2
 
     def test_office_search(self, temp_test_files):
         """Officeファイルが正しく検索できるか"""

@@ -34,7 +34,6 @@ class GrepEngine:
     def __init__(self, max_threads: int = 4):
         self.max_threads = max_threads
         self._stop_event = threading.Event()
-        self._executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
 
     def stop(self) -> None:
         """検索を中断します。スレッドセーフにイベントを発行します。"""
@@ -63,12 +62,7 @@ class GrepEngine:
         Returns:
             int: 合計ヒット数
         """
-        # 検索開始前に状態をリセットする場合、既に外部から stop されているか確認
-        if self._stop_event.is_set():
-            if on_complete:
-                on_complete(0)
-            return 0
-            
+        # 前回の停止状態をクリアし、常に新しく開始できるようにする
         self._stop_event.clear()
         
         hit_count = 0
@@ -81,12 +75,11 @@ class GrepEngine:
             try:
                 pattern = re.compile(search_text)
             except re.error as e:
-                # 不正な正規表現は例外を創出し、呼び出し元に通知
+                # 不正な正規表現は例外を送出し、呼び出し元に通知
                 raise ValueError(f"Invalid regular expression: {e}")
 
         # ThreadPoolExecutorによる並列読み込み
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:
-            self._executor = executor
             futures = {
                 executor.submit(self._scan_file, f, search_text, regex_mode, pattern): f 
                 for f in all_files
@@ -109,7 +102,6 @@ class GrepEngine:
                 if on_progress:
                     on_progress(i + 1, total_files)
 
-        self._executor = None
         if on_complete:
             on_complete(hit_count)
             
@@ -140,18 +132,22 @@ class GrepEngine:
             return []
 
         results = []
+        ext = os.path.splitext(file_path)[1].lower()
 
-        # Officeファイルの処理 (空リストが返った場合は通常のテキスト処理へ)
-        office_texts = OfficeParser.extract_text(file_path)
-        if office_texts:
-            for i, line in enumerate(office_texts, 1):
-                if self._check_hit(line, search_text, regex_mode, pattern):
-                    results.append(GrepResult(
-                        file_path=file_path,
-                        line_number=i,
-                        line_content=f"[Office] {line}"
-                    ))
-            return results
+        # Officeファイルの処理 (拡張子が一致する場合のみ、関数の呼び出しオーバーヘッドを避ける)
+        if ext in ('.docx', '.xlsx'):
+            office_texts = OfficeParser.extract_text(file_path)
+            if office_texts:
+                for i, line in enumerate(office_texts, 1):
+                    if self._check_hit(line, search_text, regex_mode, pattern):
+                        results.append(GrepResult(
+                            file_path=file_path,
+                            line_number=i,
+                            line_content=f"[Office] {line}"
+                        ))
+                return results
+
+        # 通常のテキストファイルの処理
 
         # 通常のテキストファイルの処理
         # バイナリモードで読み込んで、手動で文字コード試行を行う（chardet不使用）
