@@ -5,13 +5,11 @@ from typing import TYPE_CHECKING, Callable, Optional, Protocol
 if TYPE_CHECKING:
     from src.grep.engine import GrepResult
 
-
 class GrepEngineProtocol(Protocol):
     """
     Grepエンジンの共通インターフェース定義。
-    本物のエンジンとモックエンジンの両方がこれを満たす必要があります。
+    実体(GrepEngine)とモック(MockGrepEngine)の両方で共通して使用します。
     """
-
     def search(
         self,
         target_dir: str,
@@ -19,7 +17,7 @@ class GrepEngineProtocol(Protocol):
         regex_mode: bool = False,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
-        on_complete: Optional[Callable[[int], None]] = None,
+        on_complete: Optional[Callable[[int], None]] = None
     ) -> int:
         ...
 

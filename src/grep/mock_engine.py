@@ -1,17 +1,24 @@
-import time
+from __future__ import annotations
+
 import random
-from typing import Callable, List, Optional
-from dataclasses import dataclass
+import threading
+import time
+from typing import Callable, Optional
 
 from src.grep.engine import GrepResult
 
+
 class MockGrepEngine:
     """
-    GUI開発用のモックGrepエンジン。
-    実際のスキャンは行わず、ダミーデータを生成して進捗と結果を返します。
+    GUI開発用のモックエンジン。
+    Protocol(GrepEngineProtocol)に準拠したダミー結果を非同期に返します。
     """
-    def __init__(self):
-        self.is_running = False
+    def __init__(self, max_threads: int = 1):
+        self._stop_event = threading.Event()
+
+    def stop(self) -> None:
+        """モックの検索を停止します。"""
+        self._stop_event.set()
 
     def search(
         self,
@@ -21,53 +28,36 @@ class MockGrepEngine:
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None
-    ) -> None:
-        """
-        擬似的な検索を開始します。
-        
-        Args:
-            target_dir: 検索対象ディレクトリ (無視されます)
-            search_text: 検索文字列
-            regex_mode: 正規表現モード
-            on_progress: (完了数, 総ファイル数) を受け取るコールバック
-            on_result: 見つかった GrepResult を受け取るコールバック
-            on_complete: 合計ヒット数を受け取るコールバック
-        """
-        self.is_running = True
-        total_files = 100
+    ) -> int:
+        """ダミーの結果を生成して返します（ウェイトを挟む）。"""
+        self._stop_event.clear()
+
+        # モック用のダミーファイル数
+        total_files = 20
         hit_count = 0
 
-        # モックなので、それっぽいダミーデータを生成
-        dummy_files = [
-            f"c:/users/project/src/module_{i}.py" for i in range(total_files)
-        ]
-
-        for i, file_path in enumerate(dummy_files):
-            if not self.is_running:
+        for i in range(1, total_files + 1):
+            if self._stop_event.is_set():
                 break
 
-            # 進捗通知
-            if on_progress:
-                on_progress(i + 1, total_files)
+            # 適度なウェイト（0.1〜0.5秒）を挟んでUIでのプログレスバーを再現しやすくする
+            time.sleep(random.uniform(0.1, 0.3))
 
-            # 一定確率でヒットさせる
-            if random.random() < 0.1:  # 10%の確率
-                result = GrepResult(
-                    file_path=file_path,
-                    line_number=random.randint(1, 100),
-                    line_content=f"Found '{search_text}' in dummy content."
-                )
+            # 2割の確率でヒットさせる
+            if random.random() < 0.2:
                 hit_count += 1
                 if on_result:
-                    on_result(result)
+                    res = GrepResult(
+                        file_path=f"mock_data/sample_file_{i}.txt",
+                        line_number=random.randint(1, 100),
+                        line_content=f"This is a mock hit containing '{search_text}' at index {i}"
+                    )
+                    on_result(res)
 
-            # 少し待機してリアルな動作を演出
-            time.sleep(0.05)
+            if on_progress:
+                on_progress(i, total_files)
 
-        self.is_running = False
         if on_complete:
             on_complete(hit_count)
 
-    def stop(self):
-        """検索を中断します。"""
-        self.is_running = False
+        return hit_count
