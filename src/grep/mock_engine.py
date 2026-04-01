@@ -3,12 +3,7 @@ import random
 from typing import Callable, List, Optional
 from dataclasses import dataclass
 
-@dataclass
-class GrepResult:
-    """Grep検索の単一ヒット結果を保持するデータクラス"""
-    file_path: str
-    line_number: int
-    line_content: str
+from src.grep.engine import GrepResult
 
 class MockGrepEngine:
     """
