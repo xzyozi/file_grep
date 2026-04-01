@@ -36,14 +36,23 @@ class ThemeManager:
         style.map('TButton', background=[('active', theme["button_bg"])])
 
         # Custom button styles for calendar
-        style.configure('Today.TButton', background=theme.get("highlight_bg", theme["button_bg"]), foreground=theme["button_fg"])
+        style.configure(
+            'Today.TButton',
+            background=theme.get("highlight_bg", theme["button_bg"]),
+            foreground=theme["button_fg"]
+        )
         style.map('Today.TButton', background=[('active', theme.get("highlight_bg", theme["button_bg"]))])
         style.configure('Selected.TButton', background=theme["select_bg"], foreground=theme["select_fg"])
         style.map('Selected.TButton', background=[('active', theme["select_bg"])])
 
         style.configure('TCheckbutton', background=theme["frame_bg"], foreground=theme["label_fg"])
         style.configure('TRadiobutton', background=theme["frame_bg"], foreground=theme["label_fg"])
-        style.configure('TEntry', fieldbackground=theme["entry_bg"], foreground=theme["entry_fg"], insertbackground=theme["fg"])
+        style.configure(
+            'TEntry',
+            fieldbackground=theme["entry_bg"],
+            foreground=theme["entry_fg"],
+            insertbackground=theme["fg"]
+        )
         style.configure('TSpinbox', fieldbackground=theme["entry_bg"], foreground=theme["entry_fg"])
         style.configure('TCombobox', fieldbackground=theme["entry_bg"], foreground=theme["entry_fg"])
 
@@ -53,8 +62,17 @@ class ThemeManager:
         style.map('TNotebook.Tab', background=[('selected', theme["bg"])], foreground=[('selected', theme["fg"])])
 
         # Treeview specific styling
-        style.configure('Treeview', background=theme["listbox_bg"], foreground=theme["listbox_fg"], fieldbackground=theme["listbox_bg"])
-        style.map('Treeview', background=[('selected', theme["select_bg"])], foreground=[('selected', theme["select_fg"])])
+        style.configure(
+            'Treeview',
+            background=theme["listbox_bg"],
+            foreground=theme["listbox_fg"],
+            fieldbackground=theme["listbox_bg"]
+        )
+        style.map(
+            'Treeview',
+            background=[('selected', theme["select_bg"])],
+            foreground=[('selected', theme["select_fg"])]
+        )
         style.configure('Treeview.Heading', background=theme["button_bg"], foreground=theme["button_fg"])
 
         # 2. Recursively apply theme to non-ttk widgets
@@ -95,11 +113,27 @@ class ThemeManager:
             if isinstance(widget, (tk.Tk, tk.Toplevel, tk.Frame, tk.LabelFrame)):
                  widget.config(bg=theme["bg"])
             elif isinstance(widget, (tk.Text, tk.Listbox)):
-                widget.config(bg=theme["listbox_bg"], fg=theme["listbox_fg"], selectbackground=theme["select_bg"], selectforeground=theme["select_fg"])
+                widget.config(
+                    bg=theme["listbox_bg"],
+                    fg=theme["listbox_fg"],
+                    selectbackground=theme["select_bg"],
+                    selectforeground=theme["select_fg"]
+                )
             elif isinstance(widget, tk.Button):
-                widget.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["select_bg"], activeforeground=theme["select_fg"])
+                widget.config(
+                    bg=theme["button_bg"],
+                    fg=theme["button_fg"],
+                    activebackground=theme["select_bg"],
+                    activeforeground=theme["select_fg"]
+                )
             elif isinstance(widget, (tk.Checkbutton, tk.Radiobutton)):
-                widget.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["select_bg"], activeforeground=theme["select_fg"], selectcolor=theme["frame_bg"])
+                widget.config(
+                    bg=theme["button_bg"],
+                    fg=theme["button_fg"],
+                    activebackground=theme["select_bg"],
+                    activeforeground=theme["select_fg"],
+                    selectcolor=theme["frame_bg"]
+                )
             elif isinstance(widget, tk.Label):
                 widget.config(bg=theme["bg"], fg=theme["label_fg"])
 

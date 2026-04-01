@@ -1,96 +1,84 @@
 from __future__ import annotations
 
-import logging
 import tkinter as tk
-from tkinter import messagebox
-from typing import TYPE_CHECKING, cast
+from tkinter import ttk
+from typing import TYPE_CHECKING, Callable, Dict, List
 
-from src.core.exceptions import PhraseError
-from src.gui.base import context_menu
-from src.gui.base.base_frame_gui import BaseFrameGUI
-
-logger = logging.getLogger(__name__)
+from src.tk_gui.base.base_frame_gui import BaseFrameGUI
 
 if TYPE_CHECKING:
     from src.core.base_application import BaseApplication
-    from src.gui.base.context_menu import PhraseListContextMenu
-    from src.gui.components.phrase_edit_component import PhraseEditComponent
 
 
 class PhraseListComponent(BaseFrameGUI):
-    """定型文リスト表示コンポーネント"""
+    """
+    定型検索パターン（スニペット）を管理・表示するコンポーネント。
+    """
 
-    def __init__(self, master: tk.Misc, app_instance: BaseApplication) -> None:
+    def __init__(
+        self,
+        master: tk.Misc,
+        app_instance: BaseApplication,
+        on_select: Callable[[str, str], None]
+    ) -> None:
         super().__init__(master, app_instance)
-        self.logger = logging.getLogger(__name__)
-        self.edit_component: PhraseEditComponent | None = None  # Will be set later
+        self.on_select = on_select
+        # 固定のプリセットスニペット
+        self._snippets: List[Dict[str, str]] = [
+            {'label': 'Python: Function', 'pattern': r'^def\s+\w+\('},
+            {'label': 'Python: Class', 'pattern': r'^class\s+\w+[:\(]'},
+            {'label': 'Import statements', 'pattern': r'^import\s+|^from\s+'},
+            {'label': 'TODO Comments', 'pattern': r'#\s*TODO[:\s]'},
+            {'label': 'Email address', 'pattern': r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'},
+        ]
         self._create_widgets()
-        self._populate_listbox()
-        self._bind_events()
 
-    def set_edit_component(self, edit_component: PhraseEditComponent) -> None:
-        self.edit_component = edit_component
-        self._bind_context_menu()
+        # 言語変更イベントの購読
+        self.app.event_dispatcher.subscribe('LANGUAGE_CHANGED', self._refresh_labels)
 
     def _create_widgets(self) -> None:
-        # リストボックスの作成
-        self.phrase_listbox = tk.Listbox(self, height=10)
-        self.phrase_listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        columns = ('label', 'pattern')
+        self.tree = ttk.Treeview(self, columns=columns, show='headings', selectmode='browse')
 
-        # スクロールバーの追加
-        scrollbar = tk.Scrollbar(self)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.vsb = ttk.Scrollbar(self, orient='vertical', command=self.tree.yview)
+        self.tree.configure(yscrollcommand=self.vsb.set)
 
-        # リストボックスとスクロールバーの連携
-        self.phrase_listbox.config(yscrollcommand=scrollbar.set)
-        scrollbar.config(command=self.phrase_listbox.yview)
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.vsb.pack(side=tk.RIGHT, fill=tk.Y)
 
-    def _bind_events(self) -> None:
-        # ダブルクリックでコピー機能を設定
-        self.phrase_listbox.bind('<Double-Button-1>', lambda e: self._copy_selected_phrase())
+        self.tree.bind('<Double-1>', self._on_double_click)
+        self._refresh_list()
 
-    def _bind_context_menu(self) -> None:
-        if self.edit_component:
-            phrase_context_menu: PhraseListContextMenu = context_menu.PhraseListContextMenu(self.master, self.app, self, self.edit_component) # type: ignore
-            self.phrase_listbox.bind("<Button-3>", phrase_context_menu.show)
+        # 初期ラベル設定
+        self._refresh_labels()
 
-    def _populate_listbox(self) -> None:
-        """リストボックスに定型文を表示"""
-        self.phrase_listbox.delete(0, tk.END)
-        for phrase in self.app.fixed_phrases_manager.get_phrases(): # type: ignore
-            self.phrase_listbox.insert(tk.END, phrase)
+    def _refresh_labels(self) -> None:
+        """カラムヘッダーのテキストを更新します。"""
+        _t = self.app.translator
+        self.tree.heading('label', text=_t('snippet_label'))
+        self.tree.heading('pattern', text=_t('pattern_regex'))
 
-    def _copy_selected_phrase(self) -> None:
-        """選択された定型文をクリップボードにコピー"""
-        try:
-            selected_index = self.phrase_listbox.curselection()[0]
-            selected_phrase: str = cast(str, self.phrase_listbox.get(selected_index))
+        self.tree.column('label', width=150, anchor=tk.W)
+        self.tree.column('pattern', width=250, anchor=tk.W)
 
-            if not selected_phrase:
-                raise PhraseError("空の定型文はコピーできません")
+    def _refresh_list(self) -> None:
+        """UIの表示を最新のスニペットデータで更新します。"""
+        for item_id in self.tree.get_children():
+            self.tree.delete(item_id)
 
-            self.master.clipboard_clear() # type: ignore
-            self.master.clipboard_append(selected_phrase) # type: ignore
+        for snippet in self._snippets:
+            self.tree.insert('', tk.END, values=(
+                snippet['label'],
+                snippet['pattern']
+            ))
 
-            self.logger.info(f"定型文をコピーしました: {selected_phrase[:20]}...")
-            messagebox.showinfo("コピー完了", "定型文をクリップボードにコピーしました。", parent=self) # type: ignore
+    def _on_double_click(self, event: tk.Event) -> None:
+        """項目がダブルクリックされた時、そのパターンを検索欄にセットします。"""
+        selected = self.tree.selection()
+        if not selected:
+            return
 
-        except IndexError:
-            self.logger.warning("定型文が選択されていません")
-            messagebox.showwarning("警告", "定型文を選択してください。", parent=self) # type: ignore
-        except PhraseError as e:
-            self.log_and_show_error("エラー",f"定型文コピーエラー: {str(e)}")
-        except Exception as e:
-            self.log_and_show_error("エラー",f"予期せぬエラー: {str(e)}", exc_info=True)
-
-    def get_selected_phrase(self) -> str | None:
-        """選択された定型文を返す"""
-        try:
-            selected_index = self.phrase_listbox.curselection()[0]
-            return cast(str, self.phrase_listbox.get(selected_index))
-        except IndexError:
-            return None
-
-    def refresh(self) -> None:
-        """リストの表示を更新"""
-        self._populate_listbox()
+        index = self.tree.index(selected[0])
+        if 0 <= index < len(self._snippets):
+            snippet = self._snippets[index]
+            self.on_select(snippet['label'], snippet['pattern'])
