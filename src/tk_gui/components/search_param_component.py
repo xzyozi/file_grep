@@ -100,7 +100,12 @@ class SearchParamComponent(BaseFrameGUI):
             self.start_btn.config(state=tk.NORMAL)
             self.stop_btn.config(state=tk.DISABLED)
 
-    def set_values(self, keyword: Optional[str] = None, directory: Optional[str] = None, regex_mode: Optional[bool] = None) -> None:
+    def set_values(
+        self,
+        keyword: Optional[str] = None,
+        directory: Optional[str] = None,
+        regex_mode: Optional[bool] = None
+    ) -> None:
         """入力欄の値を設定します。"""
         if keyword is not None:
             self.keyword_var.set(keyword)

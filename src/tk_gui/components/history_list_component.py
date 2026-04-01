@@ -16,7 +16,12 @@ class HistoryListComponent(BaseFrameGUI):
     history.json に保存するため HistoryManager を使用します。
     """
 
-    def __init__(self, master: tk.Misc, app_instance: BaseApplication, on_select: Callable[[str, str, bool], None]) -> None:
+    def __init__(
+        self,
+        master: tk.Misc,
+        app_instance: BaseApplication,
+        on_select: Callable[[str, str, bool], None]
+    ) -> None:
         super().__init__(master, app_instance)
         self.on_select = on_select
 

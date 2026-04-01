@@ -46,7 +46,12 @@ class SettingsWindow(BaseToplevelGUI):
         appearance_frame.pack(fill=tk.X, pady=(0, 10))
 
         ttk.Label(appearance_frame, text=_t('theme') + ":").grid(row=0, column=0, sticky=tk.W, padx=5)
-        theme_combo = ttk.Combobox(appearance_frame, textvariable=self.theme_var, values=['light', 'dark'], state='readonly')
+        theme_combo = ttk.Combobox(
+            appearance_frame,
+            textvariable=self.theme_var,
+            values=['light', 'dark'],
+            state='readonly'
+        )
         theme_combo.grid(row=0, column=1, sticky=tk.EW, padx=5)
         theme_combo.bind('<<ComboboxSelected>>', lambda e: self._apply_settings(save=False))
 

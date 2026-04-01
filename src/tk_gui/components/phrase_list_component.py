@@ -15,7 +15,12 @@ class PhraseListComponent(BaseFrameGUI):
     定型検索パターン（スニペット）を管理・表示するコンポーネント。
     """
 
-    def __init__(self, master: tk.Misc, app_instance: BaseApplication, on_select: Callable[[str], None]) -> None:
+    def __init__(
+        self,
+        master: tk.Misc,
+        app_instance: BaseApplication,
+        on_select: Callable[[str, str], None]
+    ) -> None:
         super().__init__(master, app_instance)
         self.on_select = on_select
         # 固定のプリセットスニペット
@@ -75,5 +80,5 @@ class PhraseListComponent(BaseFrameGUI):
 
         index = self.tree.index(selected[0])
         if 0 <= index < len(self._snippets):
-            item = self._snippets[index]
-            self.on_select(item['pattern'])
+            snippet = self._snippets[index]
+            self.on_select(snippet['label'], snippet['pattern'])

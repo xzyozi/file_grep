@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import tkinter as tk
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 
 if TYPE_CHECKING:
     from src.core.base_application import BaseApplication
@@ -101,7 +101,12 @@ class BaseContextMenu(ABC):
 
 class HistoryContextMenu(BaseContextMenu):
     """Context menu for the history listbox, with state management separated."""
-    def __init__(self, master: tk.Misc, app_instance: BaseApplication) -> None:
+    def __init__(
+        self,
+        master: tk.Misc,
+        app_instance: BaseApplication,
+        on_select: Callable[[str, str, bool], None]
+    ) -> None:
         self.app = app_instance
         self.listbox: tk.Listbox | None = None
         self.state_provider = HistoryMenuStateProvider(app_instance)
@@ -181,7 +186,13 @@ class HistoryContextMenu(BaseContextMenu):
 
 class PhraseListContextMenu(BaseContextMenu):
     """Context menu for the phrase listbox."""
-    def __init__(self, master: tk.Misc, app: BaseApplication, phrase_list_component: PhraseListComponent, phrase_edit_component: PhraseEditComponent) -> None:
+    def __init__(
+        self,
+        master: tk.Misc,
+        app: BaseApplication,
+        phrase_list_component: PhraseListComponent,
+        phrase_edit_component: PhraseEditComponent
+    ) -> None:
         self.list_component = phrase_list_component
         self.edit_component = phrase_edit_component
         super().__init__(master, app.translator, app.event_dispatcher)

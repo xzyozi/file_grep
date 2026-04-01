@@ -15,9 +15,9 @@ class Translator:
     Handles translation of UI strings.
     """
     def __init__(
-        self, 
-        settings_manager: SettingsManager, 
-        locales_dir: str = "locales", 
+        self,
+        settings_manager: SettingsManager,
+        locales_dir: str = "locales",
         default_lang: str = "en"
     ) -> None:
         """

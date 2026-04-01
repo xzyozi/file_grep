@@ -55,7 +55,10 @@ class MainWindow(BaseToplevelGUI):
 
         # Help
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label=_t('about'), command=lambda: messagebox.showinfo(_t('about'), 'Grep Engine v1.0\nModernized Search Tool'))
+        help_menu.add_command(
+            label=_t('about'),
+            command=lambda: messagebox.showinfo(_t('about'), 'Grep Engine v1.0\nModernized Search Tool')
+        )
         menubar.add_cascade(label=_t('help'), menu=help_menu)
 
         self.config(menu=menubar)
@@ -96,7 +99,11 @@ class MainWindow(BaseToplevelGUI):
         self.notebook.add(self.history_list, text=_t('search_history'))
 
         # 3. スニペット（定型文）タブ
-        self.phrase_list = PhraseListComponent(self.notebook, self.app, on_select=self._apply_snippet)
+        self.phrase_list = PhraseListComponent(
+            self.notebook,
+            self.app,
+            on_select=lambda label, pattern: self.search_params.set_values(keyword=pattern)
+        )
         self.notebook.add(self.phrase_list, text=_t('snippets'))
 
     def _on_settings_changed(self, settings: Dict[str, Any]) -> None:
@@ -110,10 +117,6 @@ class MainWindow(BaseToplevelGUI):
 
     def _apply_history(self, keyword: str, directory: str, is_regex: bool) -> None:
         self.search_params.set_values(keyword=keyword, directory=directory, regex_mode=is_regex)
-        self.notebook.select(0)
-
-    def _apply_snippet(self, pattern: str) -> None:
-        self.search_params.set_values(keyword=pattern, regex_mode=True)
         self.notebook.select(0)
 
     def _on_start_search(self, target_dir: str, search_text: str, regex_mode: bool) -> None:
