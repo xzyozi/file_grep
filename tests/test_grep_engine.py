@@ -138,14 +138,26 @@ class TestGrepEngine:
         """Officeファイル(Word/Excel)が正しく検索できるか"""
         engine = GrepEngine()
         
-        # --- Wordのテスト ---
+        # --- Wordのテスト (.docx, .docm 共に検証) ---
+        for ext in (".docx", ".docm"):
+            multi_word = temp_test_files / f"test{ext}"
+            with zipfile.ZipFile(multi_word, 'w') as zp:
+                doc_xml = (
+                    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                    '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                    f'<w:body><w:p><w:t>Sample Word {ext} content</w:t></w:p></w:body>'
+                    '</w:document>'
+                )
+                zp.writestr('word/document.xml', doc_xml)
+
         results = []
         def on_result(res):
             results.append(res)
             
         engine.search(target_dir=str(temp_test_files), search_text="Word", on_result=on_result)
-        assert any("Word" in res.line_content for res in results)
-        assert any(res.file_path.endswith(".docx") for res in results)
+        # 両方の拡張子がヒットしていることを確認
+        assert any(".docx" in res.file_path for res in results)
+        assert any(".docm" in res.file_path for res in results)
 
         # --- Excelのテスト (詳細検証) ---
         results.clear()

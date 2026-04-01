@@ -73,7 +73,7 @@ class OfficeParser:
     def extract_text(cls, file_path: str) -> List[str]:
         """拡張子に応じて適切な抽出メソッドを呼び出します。不明な場合は空リストを返します。"""
         ext = file_path.lower()
-        if ext.endswith('.docx'):
+        if ext.endswith(('.docx', '.docm')):
             return cls.get_docx_text(file_path)
         elif ext.endswith(('.xlsx', '.xlsm')):
             return cls.get_xlsx_text(file_path)
