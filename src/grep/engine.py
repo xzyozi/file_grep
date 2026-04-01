@@ -1,6 +1,6 @@
-from __future__ import annotations
 import os
 import re
+import threading
 import concurrent.futures
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Any
@@ -20,23 +20,25 @@ class GrepEngine:
     マルチスレッドによる並列スキャンと、効率的な文字コード推測をサポートします。
     """
 
-    # 検索対象から除外する一般的なバイナリ拡張子
+    # 走査から完全に除外するバイナリ拡張子
+    # ※ Officeファイル(.docx, .xlsx)は OfficeParser で別途処理するため、ここには含めない
     BINARY_EXTENSIONS = {
         '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.pyc', '.pyo',
         '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.pdf',
         '.zip', '.tar', '.gz', '.rar', '.7z', '.class', '.obj', '.o'
     }
 
-    # 試行する文字コードのリスト（一般的なものを優先）
+    # 試行する文字コード（テキストファイル用）
     ENCODINGS = ['utf-8', 'cp932', 'shift_jis', 'euc_jp', 'iso-2022-jp', 'utf-16']
 
     def __init__(self, max_threads: int = 4):
         self.max_threads = max_threads
-        self._stop_requested = False
+        self._stop_event = threading.Event()
+        self._executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
 
     def stop(self) -> None:
-        """検索を中断します。"""
-        self._stop_requested = True
+        """検索を中断します。スレッドセーフにイベントを発行します。"""
+        self._stop_event.set()
 
     def search(
         self,
@@ -61,38 +63,38 @@ class GrepEngine:
         Returns:
             int: 合計ヒット数
         """
-        # 検索開始前に既に中断リクエストがあれば即座に終了
-        if self._stop_requested:
+        # 検索開始前に状態をリセットする場合、既に外部から stop されているか確認
+        if self._stop_event.is_set():
             if on_complete:
                 on_complete(0)
             return 0
-
-        self._stop_requested = False
+            
+        self._stop_event.clear()
+        
+        hit_count = 0
         all_files = self._collect_files(target_dir)
         total_files = len(all_files)
-        hit_count = 0
 
         # 正規表現パターンの事前コンパイル
         pattern = None
         if regex_mode:
             try:
                 pattern = re.compile(search_text)
-            except re.error:
-                # 不正な正規表現の場合は通常の文字列として扱うかエラーにするか検討が必要だが、
-                # ここでは安全のため通常の検索にフォールバック、または空の結果を返す
-                regex_mode = False
+            except re.error as e:
+                # 不正な正規表現は例外を創出し、呼び出し元に通知
+                raise ValueError(f"Invalid regular expression: {e}")
 
         # ThreadPoolExecutorによる並列読み込み
-        # I/Oバウンドな処理であるため、スレッドによる並列化が有効
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:
+            self._executor = executor
             futures = {
                 executor.submit(self._scan_file, f, search_text, regex_mode, pattern): f 
                 for f in all_files
             }
             
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
-                if self._stop_requested:
-                    # キャンセル時は即座に終了するが、実行中のフューチャは完了を待つ必要がある
+                if self._stop_event.is_set():
+                    # 中断時は残りのタスク完了を待たずにループを抜ける
                     break
                 
                 try:
@@ -102,12 +104,12 @@ class GrepEngine:
                         if on_result:
                             on_result(res)
                 except Exception:
-                    # 個別のファイル読み取りエラーはスキップ
                     pass
 
                 if on_progress:
                     on_progress(i + 1, total_files)
 
+        self._executor = None
         if on_complete:
             on_complete(hit_count)
             
@@ -117,7 +119,7 @@ class GrepEngine:
         """検索対象となるファイルのリストを収集します。"""
         file_list = []
         for root, _, files in os.walk(target_dir):
-            if self._stop_requested:
+            if self._stop_event.is_set():
                 break
             for file in files:
                 ext = os.path.splitext(file)[1].lower()
@@ -133,21 +135,23 @@ class GrepEngine:
         pattern: Optional[re.Pattern] = None
     ) -> List[GrepResult]:
         """単一のファイルをスキャンしてヒットした行を返します。"""
-        results = []
-        ext = os.path.splitext(file_path)[1].lower()
+        # 中断チェック
+        if self._stop_event.is_set():
+            return []
 
-        # Officeファイルの処理
-        if ext in ('.docx', '.xlsx'):
-            office_texts = OfficeParser.extract_text(file_path)
-            if office_texts:
-                for i, line in enumerate(office_texts, 1):
-                    if self._check_hit(line, search_text, regex_mode, pattern):
-                        results.append(GrepResult(
-                            file_path=file_path,
-                            line_number=i,
-                            line_content=f"[Office] {line}"
-                        ))
-                return results
+        results = []
+
+        # Officeファイルの処理 (空リストが返った場合は通常のテキスト処理へ)
+        office_texts = OfficeParser.extract_text(file_path)
+        if office_texts:
+            for i, line in enumerate(office_texts, 1):
+                if self._check_hit(line, search_text, regex_mode, pattern):
+                    results.append(GrepResult(
+                        file_path=file_path,
+                        line_number=i,
+                        line_content=f"[Office] {line}"
+                    ))
+            return results
 
         # 通常のテキストファイルの処理
         # バイナリモードで読み込んで、手動で文字コード試行を行う（chardet不使用）
