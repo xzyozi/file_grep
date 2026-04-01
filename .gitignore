@@ -31,3 +31,7 @@ sample/
 old/
 learn_re/
 wx_gui_before/
+
+# App data
+history.json
+*.grep.txt

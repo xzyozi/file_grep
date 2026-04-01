@@ -13,12 +13,16 @@ if TYPE_CHECKING:
 class HistoryListComponent(BaseFrameGUI):
     """
     過去の検索履歴を表示・管理するコンポーネント。
+    history.json に保存するため HistoryManager を使用します。
     """
 
     def __init__(self, master: tk.Misc, app_instance: BaseApplication, on_select: Callable[[str, str, bool], None]) -> None:
         super().__init__(master, app_instance)
         self.on_select = on_select
-        self._history_items: List[Dict[str, Any]] = []
+        
+        # 履歴データの読み込み
+        self._history_items: List[Dict[str, Any]] = self.app.history_manager.get_all()
+        
         self._create_widgets()
         
         # 言語変更イベントの購読
@@ -36,11 +40,11 @@ class HistoryListComponent(BaseFrameGUI):
 
         self.tree.bind('<Double-1>', self._on_double_click)
         
-        # 初期ラベル設定
         self._refresh_labels()
+        self._refresh_list()
 
     def _refresh_labels(self) -> None:
-        """カラムヘッダーのテキストを更新します。"""
+        """多言語ラベルのリフレッシュ。"""
         _t = self.app.translator
         self.tree.heading('keyword', text=_t('keyword'))
         self.tree.heading('directory', text=_t('directory'))
@@ -51,10 +55,11 @@ class HistoryListComponent(BaseFrameGUI):
         self.tree.column('regex', width=60, anchor=tk.CENTER)
 
     def add_history(self, keyword: str, directory: str, is_regex: bool) -> None:
-        """履歴項目を追加します。"""
-        # 重複チェック（単純化のため最新を一番上に）
-        item = {'keyword': keyword, 'directory': directory, 'is_regex': is_regex}
-        self._history_items.insert(0, item)
+        """履歴に項目を追加します。HistoryManager を通じて行います。"""
+        self.app.history_manager.add_entry(keyword, directory, is_regex)
+        
+        # 表示側も最新データで更新
+        self._history_items = self.app.history_manager.get_all()
         self._refresh_list()
 
     def _refresh_list(self) -> None:
@@ -70,7 +75,7 @@ class HistoryListComponent(BaseFrameGUI):
             ))
 
     def _on_double_click(self, event: tk.Event) -> None:
-        """項目がダブルクリックされた時、その検索条件をメイン画面に適用します。"""
+        """項目が選択（ダブルクリック）された際の通知。"""
         selected = self.tree.selection()
         if not selected:
             return
