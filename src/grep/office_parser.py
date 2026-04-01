@@ -16,51 +16,59 @@ class OfficeParser:
 
     @classmethod
     def get_docx_text(cls, file_path: str) -> List[str]:
-        """Wordファイル (.docx) から段落ごとのテキストリストを抽出します。"""
+        """Wordファイル (.docx) からテキストを抽出します (iterparse版)。"""
         texts = []
         try:
             with zipfile.ZipFile(file_path, 'r') as zp:
                 with zp.open('word/document.xml') as f:
-                    xml_content = f.read()
-                    tree = ET.fromstring(xml_content)
-                    # w:p (paragraph) 内の w:t (text) をすべて収集
-                    for paragraph in tree.findall('.//w:p', cls.NAMESPACE):
-                        parts = []
-                        for t in paragraph.findall('.//w:t', cls.NAMESPACE):
-                            if t.text:
-                                parts.append(t.text)
-                        if parts:
-                            texts.append("".join(parts))
+                    # 段落(w:p)ごとにテキストを集約
+                    current_paragraph_parts = []
+                    context = ET.iterparse(f, events=('start', 'end'))
+                    
+                    ns_w = f"{{{cls.NAMESPACE['w']}}}"
+                    tag_p = f"{ns_w}p"
+                    tag_t = f"{ns_w}t"
+
+                    for event, elem in context:
+                        if event == 'end' and elem.tag == tag_t:
+                            if elem.text:
+                                current_paragraph_parts.append(elem.text)
+                        
+                        elif event == 'end' and elem.tag == tag_p:
+                            if current_paragraph_parts:
+                                texts.append("".join(current_paragraph_parts))
+                                current_paragraph_parts = []
+                            # メモリ節約のため処理済み要素をクリア
+                            elem.clear()
         except (zipfile.BadZipFile, KeyError, ET.ParseError):
-            # ファイルが壊れている、または構造が異なる場合は空を返す
             pass
         return texts
 
     @classmethod
     def get_xlsx_text(cls, file_path: str) -> List[str]:
-        """Excelファイル (.xlsx) の共有文字列(Shared Strings)からテキストリストを抽出します。"""
+        """Excelファイル (.xlsx) の共有文字列からテキストを抽出します (iterparse版)。"""
         texts = []
         try:
             with zipfile.ZipFile(file_path, 'r') as zp:
-                # Excelのメインテキストは通常 xl/sharedStrings.xml に集約されている
                 if 'xl/sharedStrings.xml' in zp.namelist():
                     with zp.open('xl/sharedStrings.xml') as f:
-                        xml_content = f.read()
-                        tree = ET.fromstring(xml_content)
-                        # si (string item) 内の t (text) を収集
-                        for t in tree.findall('.//s:t', cls.NAMESPACE):
-                            if t.text:
-                                texts.append(t.text)
+                        context = ET.iterparse(f, events=('end',))
+                        tag_t = f"{{{cls.NAMESPACE['s']}}}t"
+
+                        for event, elem in context:
+                            if elem.tag == tag_t and elem.text:
+                                texts.append(elem.text)
+                            elem.clear()
         except (zipfile.BadZipFile, KeyError, ET.ParseError):
             pass
         return texts
 
     @classmethod
-    def extract_text(cls, file_path: str) -> Optional[List[str]]:
-        """拡張子に応じて適切なテキスト抽出メソッドを呼び出します。"""
+    def extract_text(cls, file_path: str) -> List[str]:
+        """拡張子に応じて適切な抽出メソッドを呼び出します。不明な場合は空リストを返します。"""
         ext = file_path.lower()
         if ext.endswith('.docx'):
             return cls.get_docx_text(file_path)
         elif ext.endswith('.xlsx'):
             return cls.get_xlsx_text(file_path)
-        return None
+        return []
