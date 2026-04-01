@@ -135,20 +135,46 @@ class TestGrepEngine:
         assert hit_count < 2
 
     def test_office_search(self, temp_test_files):
-        """Officeファイルが正しく検索できるか"""
+        """Officeファイル(Word/Excel)が正しく検索できるか"""
         engine = GrepEngine()
-        results = []
         
+        # --- Wordのテスト ---
+        results = []
         def on_result(res):
             results.append(res)
             
-        # Wordの検索
         engine.search(target_dir=str(temp_test_files), search_text="Word", on_result=on_result)
         assert any("Word" in res.line_content for res in results)
         assert any(res.file_path.endswith(".docx") for res in results)
 
-        # Excelの検索
+        # --- Excelのテスト (詳細検証) ---
         results.clear()
+        # フィクスチャで作成した test.xlsx には "Excel Search Cell" が含まれている
         engine.search(target_dir=str(temp_test_files), search_text="Excel", on_result=on_result)
-        assert any("Excel" in res.line_content for res in results)
-        assert any(res.file_path.endswith(".xlsx") for res in results)
+        assert len(results) == 1
+        assert "Excel Search Cell" in results[0].line_content
+
+        # 新しく「複数ヒット・非ヒット」を含むExcelファイルを動的に作成してテスト
+        multi_xlsx = temp_test_files / "multi_test.xlsx"
+        with zipfile.ZipFile(multi_xlsx, 'w') as zp:
+            shared_xml = (
+                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                '<si><t>Apple</t></si>'
+                '<si><t>Banana Target</t></si>'
+                '<si><t>Cherry</t></si>'
+                '<si><t>Date Target</t></si>'
+                '</sst>'
+            )
+            zp.writestr('xl/sharedStrings.xml', shared_xml)
+
+        results.clear()
+        engine.search(target_dir=str(temp_test_files), search_text="Target", on_result=on_result)
+        
+        # multi_test.xlsx から 2つヒットするはず (Banana Target, Date Target)
+        target_hits = [res for res in results if "multi_test.xlsx" in res.file_path]
+        assert len(target_hits) == 2
+        assert "Banana" in target_hits[0].line_content
+        assert "Date" in target_hits[1].line_content
+        # Apple や Cherry はヒットしてはならない
+        assert all("Apple" not in res.line_content for res in target_hits)
