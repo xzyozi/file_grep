@@ -75,6 +75,6 @@ class OfficeParser:
         ext = file_path.lower()
         if ext.endswith('.docx'):
             return cls.get_docx_text(file_path)
-        elif ext.endswith('.xlsx'):
+        elif ext.endswith(('.xlsx', '.xlsm')):
             return cls.get_xlsx_text(file_path)
         return []

@@ -135,7 +135,7 @@ class GrepEngine:
         ext = os.path.splitext(file_path)[1].lower()
 
         # Officeファイルの処理 (拡張子が一致する場合のみ、関数の呼び出しオーバーヘッドを避ける)
-        if ext in ('.docx', '.xlsx'):
+        if ext in ('.docx', '.xlsx', '.xlsm'):
             office_texts = OfficeParser.extract_text(file_path)
             if office_texts:
                 for i, line in enumerate(office_texts, 1):
