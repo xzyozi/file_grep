@@ -11,6 +11,7 @@ from src.tk_gui.components.grep_result_list_component import GrepResultListCompo
 from src.tk_gui.components.history_list_component import HistoryListComponent
 from src.tk_gui.components.phrase_list_component import PhraseListComponent
 from src.tk_gui.components.search_param_component import SearchParamComponent
+from src.tk_gui.windows.settings_window import SettingsWindow
 
 if TYPE_CHECKING:
     from src.core.base_application import BaseApplication
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 class MainWindow(BaseToplevelGUI):
     """
     アプリケーションのメインウィンドウ。
-    検索条件の入力と、複数のタブ（結果、履歴、スニペット）を管理します。
+    検索条件の入力と、複数のタブ、設定画面へのアクセスを提供します。
     """
 
     def __init__(self, master: tk.Misc, app_instance: BaseApplication) -> None:
@@ -28,23 +29,40 @@ class MainWindow(BaseToplevelGUI):
         self.title('Grep Engine - Advanced')
         self.geometry('1000x800')
 
-        # 検索エンジンの準備
-        self.engine = self._load_engine()
+        self.engine = self.app.engine
+        
+        # UI構築
         self._create_widgets()
+        self._refresh_menu()
+        
+        # 設定/言語変更の購読
+        self.app.event_dispatcher.subscribe('SETTINGS_CHANGED', self._on_settings_changed)
+        self.app.event_dispatcher.subscribe('LANGUAGE_CHANGED', self._refresh_menu)
 
-    def _load_engine(self):
-        """エンジンをロードします。"""
-        try:
-            from src.grep.engine import GrepEngine
-            return GrepEngine()
-        except (ImportError, Exception):
-            try:
-                from src.grep.mock_engine import MockGrepEngine
-                return MockGrepEngine()
-            except ImportError:
-                return None
+    def _refresh_menu(self) -> None:
+        """メニューバーを生成（または再構築）します。言語変更時に呼び出されます。"""
+        _t = self.app.translator
+        menubar = tk.Menu(self)
+
+        # File
+        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label=_t('exit'), command=self.app.quit)
+        menubar.add_cascade(label=_t('file'), menu=file_menu)
+
+        # Edit (Settings)
+        edit_menu = tk.Menu(menubar, tearoff=0)
+        edit_menu.add_command(label=_t('settings'), command=self._on_open_settings)
+        menubar.add_cascade(label=_t('edit'), menu=edit_menu)
+
+        # Help
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label=_t('about'), command=lambda: messagebox.showinfo(_t('about'), 'Grep Engine v1.0\nModernized Search Tool'))
+        menubar.add_cascade(label=_t('help'), menu=help_menu)
+
+        self.config(menu=menubar)
 
     def _create_widgets(self) -> None:
+        _t = self.app.translator
         # 上部: 全タブ共通の検索設定エリア
         self.search_params = SearchParamComponent(
             self,
@@ -72,46 +90,39 @@ class MainWindow(BaseToplevelGUI):
 
         # 1. 結果リストタブ
         self.result_list = GrepResultListComponent(self.notebook, self.app)
-        self.notebook.add(self.result_list, text='Search Results')
+        self.notebook.add(self.result_list, text=_t('search_results'))
 
         # 2. 履歴タブ
         self.history_list = HistoryListComponent(self.notebook, self.app, on_select=self._apply_history)
-        self.notebook.add(self.history_list, text='Search History')
+        self.notebook.add(self.history_list, text=_t('search_history'))
 
         # 3. スニペット（定型文）タブ
         self.phrase_list = PhraseListComponent(self.notebook, self.app, on_select=self._apply_snippet)
-        self.notebook.add(self.phrase_list, text='Snippets / Patterns')
+        self.notebook.add(self.phrase_list, text=_t('snippets'))
+
+    def _on_settings_changed(self, settings: Dict[str, Any]) -> None:
+        """設定が変更された際の処理（テーマの適用など）。"""
+        theme_name = settings.get('theme', 'light')
+        if self.app.gui and hasattr(self.app.gui, 'apply_theme'):
+             self.app.gui.apply_theme(theme_name)
+
+    def _on_open_settings(self) -> None:
+        SettingsWindow(self, self.app, self.app.settings_manager)
 
     def _apply_history(self, keyword: str, directory: str, is_regex: bool) -> None:
-        """履歴から検索条件を復元し、結果タブに切り替えます。"""
         self.search_params.set_values(keyword=keyword, directory=directory, regex_mode=is_regex)
         self.notebook.select(0)
-        self.status_var.set('History conditions applied.')
 
     def _apply_snippet(self, pattern: str) -> None:
-        """スニペットからパターンをセットし、正規表現モードをONにして結果タブに切り替えます。"""
         self.search_params.set_values(keyword=pattern, regex_mode=True)
         self.notebook.select(0)
-        self.status_var.set('Snippet pattern applied.')
 
     def _on_start_search(self, target_dir: str, search_text: str, regex_mode: bool) -> None:
-        """検索開始。"""
         if not self.engine:
             messagebox.showerror('Error', 'GrepEngine is not loaded.')
             return
 
-        if not os.path.isdir(target_dir):
-            messagebox.showwarning('Warning', 'Target directory does not exist.')
-            return
-        
-        if not search_text:
-            messagebox.showwarning('Warning', 'Please enter a search keyword.')
-            return
-
-        # 履歴に追加
         self.history_list.add_history(search_text, target_dir, regex_mode)
-        
-        # UI状態を検索中に変更 & 結果タブへスイッチ
         self.notebook.select(0)
         self.result_list.clear()
         self.progress_var.set(0)
@@ -132,22 +143,18 @@ class MainWindow(BaseToplevelGUI):
         t.start()
 
     def _on_stop_search(self) -> None:
-        """検索中止。"""
         if self.engine:
             self.engine.stop()
             self.status_var.set('Stopping...')
 
     def _update_progress(self, current: int, total: int) -> None:
-        """スレッドセーフな進捗更新。"""
         percent = (current / total) * 100 if total > 0 else 0
         self.after(0, lambda: self.progress_var.set(percent))
-        self.after(0, lambda: self.status_var.set(f'Scanning: {current} / {total} files'))
+        self.after(0, lambda: self.status_var.set(f'Searching: {current} / {total} files'))
 
     def _add_to_list(self, result: GrepResult) -> None:
-        """スレッドセーフな結果追加。"""
         self.after(0, lambda: self.result_list.add_result(result))
 
     def _search_complete(self, hit_count: int) -> None:
-        """スレッドセーフな完了処理。"""
-        self.after(0, lambda: self.status_var.set(f'Complete! Total hits: {hit_count}'))
+        self.after(0, lambda: self.status_var.set(f'Complete! hits: {hit_count}'))
         self.after(0, lambda: self.search_params.set_searching_state(False))
