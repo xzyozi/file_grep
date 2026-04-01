@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, Optional, Callable
 
 from src.core.event_dispatcher import EventDispatcher
+from src.core.config.settings_manager import SettingsManager
+from src.utils.i18n import Translator
 
 if TYPE_CHECKING:
     from src.core.gui_interface import GUIProtocol
@@ -12,24 +14,21 @@ if TYPE_CHECKING:
 class BaseApplication:
     """
     アプリケーションのコア管理クラス。
-    GUI（tkinterなど）には依存せず、設定、イベント、検索エンジンなどの
-    サービスを集約して管理します。
+    GUIフレームワークに依存せず、すべての基盤サービスを集約します。
     """
 
     def __init__(self, gui_adapter: Optional[GUIProtocol] = None) -> None:
-        # イベント管理
+        # 1. 基盤サービスの構築
         self.event_dispatcher = EventDispatcher()
+        self.settings_manager = SettingsManager(self.event_dispatcher)
         
-        # 設定管理（将来的に SettingsManager に置き換え）
-        self.settings: Dict[str, Any] = {}
+        # 2. 翻訳エンジンの初期化 (locales フォルダを指定)
+        self.translator = Translator(self.settings_manager, locales_dir="locales")
         
-        # 翻訳機能
-        self.translator: Callable[[str], str] = lambda x: x
-        
-        # GUIアダプター（Tkinter, wxPython, CLIなど）
+        # 3. GUIアダプターの保持
         self.gui: Optional[GUIProtocol] = gui_adapter
         
-        # 検索エンジンを保持
+        # 4. 検索エンジンの保持 (Mock / Real)
         self.engine: Optional[GrepEngineProtocol] = self._init_engine()
 
     def _init_engine(self) -> Optional[GrepEngineProtocol]:
@@ -57,11 +56,11 @@ class BaseApplication:
             self.gui.initialize()
             self.gui.run()
         else:
-            print("Running in Headless Mode (CLI or other)")
-            # CLI用のロジック等をここに記述
+            # サーバーモードやCLIモードなどのHeadless実行
+            pass
 
     def quit(self) -> None:
-        """アプリケーションをクリーンアップして終了します。"""
+        """安全にアプリケーションを終了します。"""
         if self.gui:
             self.gui.quit()
-        # ここにエンジンの停止、設定の保存などを記述
+        # 必要なら設定の最終保存など
