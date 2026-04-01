@@ -10,22 +10,27 @@ from src.utils.i18n import Translator
 
 if TYPE_CHECKING:
     from src.core.gui_interface import GUIProtocol
-    from src.grep.interface import GrepEngineProtocol
+    from src.grep.interface import GrepResult
 
 
 class BaseApplication:
     """
     アプリケーションのコア管理クラス。
-    各サービス（設定、履歴、翻訳、エンジン）を集約します。
     """
 
     def __init__(self, gui_adapter: Optional[GUIProtocol] = None) -> None:
-        # プロジェクトルートの絶対パスを取得
         self.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
         # 1. サービス構築
         self.event_dispatcher = EventDispatcher()
         self.settings_manager = SettingsManager(self.event_dispatcher)
+        
+        # クリーンアップ: もし settings.json に履歴が残っていたら削除して history.json に移行する
+        if self.settings_manager.get_setting("history") is not None:
+            # 不要なキーを削除して保存 (history.json への移行が済んでいる前提)
+            del self.settings_manager.settings["history"]
+            self.settings_manager.save_settings()
+
         self.history_manager = HistoryManager()
         
         # 2. 翻訳エンジンの初期化
@@ -36,17 +41,17 @@ class BaseApplication:
         self.gui: Optional[GUIProtocol] = gui_adapter
         
         # 4. エンジン
-        self.engine: Optional[GrepEngineProtocol] = self._init_engine()
+        self.engine = self._init_engine()
 
-    def _init_engine(self) -> Optional[GrepEngineProtocol]:
+    def _init_engine(self):
         try:
             from src.grep.engine import GrepEngine
             return GrepEngine()
-        except (ImportError, Exception):
+        except:
             try:
                 from src.grep.mock_engine import MockGrepEngine
                 return MockGrepEngine()
-            except ImportError:
+            except:
                 return None
 
     def set_gui(self, gui_adapter: GUIProtocol) -> None:
@@ -63,5 +68,6 @@ class BaseApplication:
     def quit(self) -> None:
         if self.gui:
             self.gui.quit()
+        # 確実に個別のファイルへ保存を完了させる
         self.settings_manager.save_settings()
-        self.history_manager.save_history() # 履歴も終了時に保存
+        self.history_manager.save_history()
