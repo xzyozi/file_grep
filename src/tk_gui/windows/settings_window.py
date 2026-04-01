@@ -6,7 +6,7 @@ from tkinter import filedialog, font, messagebox, simpledialog, ttk
 from typing import TYPE_CHECKING
 
 from src.core.config import defaults as config
-from src.gui.base.base_toplevel_gui import BaseToplevelGUI
+from src.tk_gui.base.base_toplevel_gui import BaseToplevelGUI
 from src.utils.error_handler import log_and_show_error
 
 if TYPE_CHECKING:
