@@ -10,7 +10,7 @@ from src.utils.i18n import Translator
 
 if TYPE_CHECKING:
     from src.core.gui_interface import GUIProtocol
-    from src.grep.interface import GrepResult
+    from src.grep.interface import GrepResult, GrepEngineProtocol
 
 
 class BaseApplication:
@@ -43,15 +43,17 @@ class BaseApplication:
         # 4. エンジン
         self.engine = self._init_engine()
 
-    def _init_engine(self):
+    def _init_engine(self) -> Optional[GrepEngineProtocol]:
+        """検索エンジンを初期化します。"""
         try:
-            from src.grep.engine import GrepEngine
+            # 型チェック時のエラーを避けるために一連の試行を行う
+            from src.grep.engine import GrepEngine # type: ignore
             return GrepEngine()
-        except:
+        except (ImportError, AttributeError):
             try:
                 from src.grep.mock_engine import MockGrepEngine
-                return MockGrepEngine()
-            except:
+                return MockGrepEngine() # type: ignore
+            except ImportError:
                 return None
 
     def set_gui(self, gui_adapter: GUIProtocol) -> None:

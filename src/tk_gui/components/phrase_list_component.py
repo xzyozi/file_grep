@@ -58,13 +58,13 @@ class PhraseListComponent(BaseFrameGUI):
 
     def _refresh_list(self) -> None:
         """UIの表示を最新のスニペットデータで更新します。"""
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        for item_id in self.tree.get_children():
+            self.tree.delete(item_id)
         
-        for item in self._snippets:
+        for snippet in self._snippets:
             self.tree.insert('', tk.END, values=(
-                item['label'],
-                item['pattern']
+                snippet['label'],
+                snippet['pattern']
             ))
 
     def _on_double_click(self, event: tk.Event) -> None:

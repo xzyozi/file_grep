@@ -100,7 +100,7 @@ class HistoryContextMenu(BaseContextMenu):
         self.app = app_instance
         self.listbox: tk.Listbox | None = None
         self.state_provider = HistoryMenuStateProvider(app_instance)
-        super().__init__(master, app_instance.translator, app_instance.event_dispatcher) # type: ignore
+        super().__init__(master, app_instance.translator, app_instance.event_dispatcher)
 
     def build_menu(self) -> None:
         # Dynamic menu, built just before showing.
@@ -179,7 +179,7 @@ class PhraseListContextMenu(BaseContextMenu):
     def __init__(self, master: tk.Misc, app: BaseApplication, phrase_list_component: PhraseListComponent, phrase_edit_component: PhraseEditComponent) -> None:
         self.list_component = phrase_list_component
         self.edit_component = phrase_edit_component
-        super().__init__(master, app.translator, app.event_dispatcher) # type: ignore
+        super().__init__(master, app.translator, app.event_dispatcher)
 
     def build_menu(self) -> None:
         self.menu.add_command(label=self.translator("copy"), command=self.edit_component._copy_phrase) # type: ignore
@@ -188,12 +188,15 @@ class PhraseListContextMenu(BaseContextMenu):
         self.menu.add_command(label=self.translator("delete"), command=self.edit_component._delete_phrase) # type: ignore
 
     def show(self, event: tk.Event) -> None:
+        """Show context menu and select item under cursor for Treeview."""
         try:
-            item_index = self.list_component.phrase_listbox.nearest(event.y)
-            if not self.list_component.phrase_listbox.selection_includes(item_index):
-                self.list_component.phrase_listbox.selection_clear(0, tk.END)
-                self.list_component.phrase_listbox.selection_set(item_index)
-                self.list_component.phrase_listbox.activate(item_index)
-        except tk.TclError:
-            pass  # Listbox is empty
-        super().show(event)
+            tree = self.list_component.tree
+            item_id = tree.identify_row(event.y)
+            if item_id:
+                if item_id not in tree.selection():
+                    tree.selection_set(item_id)
+                    tree.focus(item_id)
+        except AttributeError:
+            pass  # Component might not have initialized tree yet
+        
+        self.menu.tk_popup(event.x_root, event.y_root)

@@ -64,14 +64,14 @@ class HistoryListComponent(BaseFrameGUI):
 
     def _refresh_list(self) -> None:
         """現在の履歴リストでTreeviewを再描画します。"""
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        for item_id in self.tree.get_children():
+            self.tree.delete(item_id)
         
-        for item in self._history_items:
+        for hist_item in self._history_items:
             self.tree.insert('', tk.END, values=(
-                item['keyword'],
-                item['directory'],
-                'YES' if item['is_regex'] else 'NO'
+                hist_item['keyword'],
+                hist_item['directory'],
+                'YES' if hist_item['is_regex'] else 'NO'
             ))
 
     def _on_double_click(self, event: tk.Event) -> None:

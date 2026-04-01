@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.core.base_application import BaseApplication
 from src.tk_gui.base.tkinter_adapter import TkinterGUIAdapter
 
-def run_app():
+def run_app() -> None:
     """アプリケーション本体の起動処理。"""
     # 1. バックエンド基盤 (Core) の生成
     app = BaseApplication()
@@ -20,7 +20,7 @@ def run_app():
     # 3. 起動
     app.run()
 
-def main():
+def main() -> None:
     """エントリポイント"""
     try:
         run_app()

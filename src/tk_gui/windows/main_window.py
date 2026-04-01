@@ -118,7 +118,9 @@ class MainWindow(BaseToplevelGUI):
         self.notebook.select(0)
 
     def _on_start_search(self, target_dir: str, search_text: str, regex_mode: bool) -> None:
-        if not self.engine:
+        """検索開始処理。"""
+        engine = self.engine
+        if not engine:
             messagebox.showerror('Error', 'GrepEngine is not loaded.')
             return
 
@@ -130,7 +132,7 @@ class MainWindow(BaseToplevelGUI):
         self.search_params.set_searching_state(True)
 
         t = threading.Thread(
-            target=lambda: self.engine.search(
+            target=lambda: engine.search(
                 target_dir=target_dir,
                 search_text=search_text,
                 regex_mode=regex_mode,
@@ -143,8 +145,10 @@ class MainWindow(BaseToplevelGUI):
         t.start()
 
     def _on_stop_search(self) -> None:
-        if self.engine:
-            self.engine.stop()
+        """検索停止処理。"""
+        engine = self.engine
+        if engine:
+            engine.stop()
             self.status_var.set('Stopping...')
 
     def _update_progress(self, current: int, total: int) -> None:
