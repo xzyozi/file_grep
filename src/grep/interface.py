@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Protocol, Callable, Optional, TYPE_CHECKING
+
+from typing import TYPE_CHECKING, Callable, Optional, Protocol
 
 if TYPE_CHECKING:
     from src.grep.engine import GrepResult

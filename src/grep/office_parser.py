@@ -1,7 +1,9 @@
 from __future__ import annotations
-import zipfile
+
+from typing import List
 import xml.etree.ElementTree as ET
-from typing import List, Optional
+import zipfile
+
 
 class OfficeParser:
     """
@@ -30,7 +32,7 @@ class OfficeParser:
                     # 段落(w:p)ごとにテキストを集約
                     current_paragraph_parts = []
                     context = ET.iterparse(f, events=('start', 'end'))
-                    
+
                     ns_w = f"{{{cls.NAMESPACE['w']}}}"
                     tag_p = f"{ns_w}p"
                     tag_t = f"{ns_w}t"
@@ -39,7 +41,7 @@ class OfficeParser:
                         if event == 'end' and elem.tag == tag_t:
                             if elem.text:
                                 current_paragraph_parts.append(elem.text)
-                        
+
                         elif event == 'end' and elem.tag == tag_p:
                             if current_paragraph_parts:
                                 texts.append("".join(current_paragraph_parts))

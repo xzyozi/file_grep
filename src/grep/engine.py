@@ -1,11 +1,12 @@
+import concurrent.futures
+from dataclasses import dataclass
 import os
 import re
 import threading
-import concurrent.futures
-from dataclasses import dataclass
-from typing import Callable, List, Optional, Any
+from typing import Callable, List, Optional
 
 from src.grep.office_parser import OfficeParser
+
 
 @dataclass
 class GrepResult:
@@ -64,7 +65,7 @@ class GrepEngine:
         """
         # 前回の停止状態をクリアし、常に新しく開始できるようにする
         self._stop_event.clear()
-        
+
         hit_count = 0
         all_files = self._collect_files(target_dir)
         total_files = len(all_files)
@@ -81,15 +82,15 @@ class GrepEngine:
         # ThreadPoolExecutorによる並列読み込み
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:
             futures = {
-                executor.submit(self._scan_file, f, search_text, regex_mode, pattern): f 
+                executor.submit(self._scan_file, f, search_text, regex_mode, pattern): f
                 for f in all_files
             }
-            
+
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
                 if self._stop_event.is_set():
                     # 中断時は残りのタスク完了を待たずにループを抜ける
                     break
-                
+
                 try:
                     results = future.result()
                     for res in results:
@@ -104,7 +105,7 @@ class GrepEngine:
 
         if on_complete:
             on_complete(hit_count)
-            
+
         return hit_count
 
     def _collect_files(self, target_dir: str) -> List[str]:
@@ -120,10 +121,10 @@ class GrepEngine:
         return file_list
 
     def _scan_file(
-        self, 
-        file_path: str, 
-        search_text: str, 
-        regex_mode: bool, 
+        self,
+        file_path: str,
+        search_text: str,
+        regex_mode: bool,
         pattern: Optional[re.Pattern] = None
     ) -> List[GrepResult]:
         """単一のファイルをスキャンしてヒットした行を返します。"""
@@ -169,7 +170,7 @@ class GrepEngine:
                 break
             except UnicodeDecodeError:
                 continue
-        
+
         if content is None:
             # どのエンコーディングでもデコードできない場合はスキップ（バイナリ等）
             return []
@@ -182,7 +183,7 @@ class GrepEngine:
                     line_number=i,
                     line_content=line
                 ))
-                
+
         return results
 
     def _check_hit(self, line: str, search_text: str, regex_mode: bool, pattern: Optional[re.Pattern] = None) -> bool:
