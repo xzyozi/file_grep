@@ -22,7 +22,7 @@ class GrepResultListComponent(BaseFrameGUI):
         super().__init__(master, app_instance)
         self._results: List[GrepResult] = []
         self._create_widgets()
-        
+
         # 言語変更イベントの購読
         self.app.event_dispatcher.subscribe('LANGUAGE_CHANGED', self._refresh_labels)
 
@@ -38,7 +38,7 @@ class GrepResultListComponent(BaseFrameGUI):
 
         self.tree.bind('<Double-1>', self._on_double_click)
         self.tree.bind('<Button-3>', self._on_right_click)
-        
+
         # 初期ラベル設定
         self._refresh_labels()
 
@@ -48,7 +48,7 @@ class GrepResultListComponent(BaseFrameGUI):
         self.tree.heading('file', text=_t('file_name'))
         self.tree.heading('line', text=_t('line_no'))
         self.tree.heading('content', text=_t('content'))
-        
+
         self.tree.column('file', width=200, anchor=tk.W)
         self.tree.column('line', width=60, anchor=tk.CENTER)
         self.tree.column('content', width=500, anchor=tk.W)
@@ -73,7 +73,7 @@ class GrepResultListComponent(BaseFrameGUI):
         selected_item = self.tree.selection()
         if not selected_item:
             return
-            
+
         index = self.tree.index(selected_item[0])
         if 0 <= index < len(self._results):
             file_path = self._results[index].file_path
@@ -87,7 +87,7 @@ class GrepResultListComponent(BaseFrameGUI):
             self.tree.selection_set(item)
             menu = tk.Menu(self, tearoff=0)
             _t = self.app.translator
-            
+
             menu.add_command(label=_t('open_file'), command=self._open_selected_file)
             menu.add_command(label=_t('open_folder'), command=self._open_folder)
             menu.tk_popup(event.x_root, event.y_root)

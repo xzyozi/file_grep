@@ -7,7 +7,6 @@ from src.core.config.defaults import THEMES
 
 if TYPE_CHECKING:
     from src.core.base_application import BaseApplication
-    from src.tk_gui.base.tkinter_adapter import TkinterGUIAdapter
 
 
 class BaseToplevelGUI(tk.Toplevel):

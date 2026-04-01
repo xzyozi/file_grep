@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import tkinter as tk
 from abc import ABC, abstractmethod
+import tkinter as tk
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 if TYPE_CHECKING:
@@ -65,7 +65,12 @@ class HistoryMenuStateProvider:
 
 class BaseContextMenu(ABC):
     """Base class for context menus."""
-    def __init__(self, master: tk.Misc, translator: Translator | None = None, dispatcher: EventDispatcher | None = None) -> None:
+    def __init__(
+        self,
+        master: tk.Misc,
+        translator: Translator | None = None,
+        dispatcher: EventDispatcher | None = None
+    ) -> None:
         self.master = master
         self.menu = tk.Menu(master, tearoff=0)
         self.translator = translator
@@ -198,5 +203,5 @@ class PhraseListContextMenu(BaseContextMenu):
                     tree.focus(item_id)
         except AttributeError:
             pass  # Component might not have initialized tree yet
-        
+
         self.menu.tk_popup(event.x_root, event.y_root)

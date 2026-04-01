@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk, messagebox
-from typing import TYPE_CHECKING, Any
+from tkinter import messagebox, ttk
+from typing import TYPE_CHECKING
 
 from src.tk_gui.base.base_toplevel_gui import BaseToplevelGUI
 
@@ -23,7 +23,7 @@ class SettingsWindow(BaseToplevelGUI):
         settings_manager: SettingsManager,
     ) -> None:
         super().__init__(master, app_instance)
-        
+
         _t = self.app.translator
         self.title(_t('settings'))
         self.geometry('400x300')
@@ -37,7 +37,7 @@ class SettingsWindow(BaseToplevelGUI):
 
     def _create_widgets(self) -> None:
         _t = self.app.translator
-        
+
         container = ttk.Frame(self, padding=20)
         container.pack(fill=tk.BOTH, expand=True)
 

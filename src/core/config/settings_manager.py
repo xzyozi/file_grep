@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-import os
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional
+import os
+from typing import TYPE_CHECKING, Any, Dict
 
 if TYPE_CHECKING:
     from src.core.event_dispatcher import EventDispatcher
@@ -19,11 +19,11 @@ class SettingsManager:
 
     def __init__(self, event_dispatcher: EventDispatcher, config_name: str = "settings.json") -> None:
         self.event_dispatcher = event_dispatcher
-        
+
         # プロジェクトルート (src の一階層上) を基準に絶対パスを構築
         root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
         self.config_path = os.path.join(root_dir, config_name)
-        
+
         logger.info(f"Target config path: {self.config_path}")
         self.settings: Dict[str, Any] = self._load_settings()
 

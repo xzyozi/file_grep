@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
-import os
 import logging
+import os
 from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
@@ -40,21 +40,21 @@ class HistoryManager:
             'directory': directory,
             'is_regex': is_regex
         }
-        
+
         # 重複チェック（同一内容なら一旦削除）
         self.history = [h for h in self.history if not (
-            h['keyword'] == keyword and 
-            h['directory'] == directory and 
+            h['keyword'] == keyword and
+            h['directory'] == directory and
             h['is_regex'] == is_regex
         )]
-        
+
         # 先頭に挿入
         self.history.insert(0, new_entry)
-        
+
         # 件数制限
         if len(self.history) > self.max_items:
             self.history = self.history[:self.max_items]
-            
+
         self.save_history()
 
     def get_all(self) -> List[Dict[str, Any]]:

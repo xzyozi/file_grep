@@ -19,12 +19,12 @@ class HistoryListComponent(BaseFrameGUI):
     def __init__(self, master: tk.Misc, app_instance: BaseApplication, on_select: Callable[[str, str, bool], None]) -> None:
         super().__init__(master, app_instance)
         self.on_select = on_select
-        
+
         # 履歴データの読み込み
         self._history_items: List[Dict[str, Any]] = self.app.history_manager.get_all()
-        
+
         self._create_widgets()
-        
+
         # 言語変更イベントの購読
         self.app.event_dispatcher.subscribe('LANGUAGE_CHANGED', self._refresh_labels)
 
@@ -39,7 +39,7 @@ class HistoryListComponent(BaseFrameGUI):
         self.vsb.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.tree.bind('<Double-1>', self._on_double_click)
-        
+
         self._refresh_labels()
         self._refresh_list()
 
@@ -49,7 +49,7 @@ class HistoryListComponent(BaseFrameGUI):
         self.tree.heading('keyword', text=_t('keyword'))
         self.tree.heading('directory', text=_t('directory'))
         self.tree.heading('regex', text=_t('regex_short'))
-        
+
         self.tree.column('keyword', width=150, anchor=tk.W)
         self.tree.column('directory', width=250, anchor=tk.W)
         self.tree.column('regex', width=60, anchor=tk.CENTER)
@@ -57,7 +57,7 @@ class HistoryListComponent(BaseFrameGUI):
     def add_history(self, keyword: str, directory: str, is_regex: bool) -> None:
         """履歴に項目を追加します。HistoryManager を通じて行います。"""
         self.app.history_manager.add_entry(keyword, directory, is_regex)
-        
+
         # 表示側も最新データで更新
         self._history_items = self.app.history_manager.get_all()
         self._refresh_list()
@@ -66,7 +66,7 @@ class HistoryListComponent(BaseFrameGUI):
         """現在の履歴リストでTreeviewを再描画します。"""
         for item_id in self.tree.get_children():
             self.tree.delete(item_id)
-        
+
         for hist_item in self._history_items:
             self.tree.insert('', tk.END, values=(
                 hist_item['keyword'],

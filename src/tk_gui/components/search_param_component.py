@@ -33,7 +33,7 @@ class SearchParamComponent(BaseFrameGUI):
         self.regex_var = tk.BooleanVar(value=False)
 
         self._create_widgets()
-        
+
         # 言語変更イベントの購読
         self.app.event_dispatcher.subscribe('LANGUAGE_CHANGED', self._refresh_labels)
 
@@ -41,17 +41,17 @@ class SearchParamComponent(BaseFrameGUI):
         # ディレクトリ選択
         self.dir_label = ttk.Label(self)
         self.dir_label.grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
-        
+
         self.dir_entry = ttk.Entry(self, textvariable=self.dir_var, width=60)
         self.dir_entry.grid(row=0, column=1, sticky=tk.EW, padx=5, pady=2)
-        
+
         self.browse_btn = ttk.Button(self, text="...", width=3, command=self._browse_directory)
         self.browse_btn.grid(row=0, column=2, sticky=tk.W, padx=2)
 
         # キーワード入力
         self.kw_label = ttk.Label(self)
         self.kw_label.grid(row=1, column=0, sticky=tk.W, padx=5, pady=2)
-        
+
         self.kw_entry = ttk.Entry(self, textvariable=self.keyword_var, width=60)
         self.kw_entry.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=2)
         self.kw_entry.bind('<Return>', lambda e: self._on_start_btn_click())
@@ -70,7 +70,7 @@ class SearchParamComponent(BaseFrameGUI):
         self.stop_btn.pack(side=tk.LEFT, padx=5)
 
         self.grid_columnconfigure(1, weight=1)
-        
+
         # 初期ラベル設定
         self._refresh_labels()
 

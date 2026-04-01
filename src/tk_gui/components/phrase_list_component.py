@@ -27,7 +27,7 @@ class PhraseListComponent(BaseFrameGUI):
             {'label': 'Email address', 'pattern': r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'},
         ]
         self._create_widgets()
-        
+
         # 言語変更イベントの購読
         self.app.event_dispatcher.subscribe('LANGUAGE_CHANGED', self._refresh_labels)
 
@@ -43,7 +43,7 @@ class PhraseListComponent(BaseFrameGUI):
 
         self.tree.bind('<Double-1>', self._on_double_click)
         self._refresh_list()
-        
+
         # 初期ラベル設定
         self._refresh_labels()
 
@@ -52,7 +52,7 @@ class PhraseListComponent(BaseFrameGUI):
         _t = self.app.translator
         self.tree.heading('label', text=_t('snippet_label'))
         self.tree.heading('pattern', text=_t('pattern_regex'))
-        
+
         self.tree.column('label', width=150, anchor=tk.W)
         self.tree.column('pattern', width=250, anchor=tk.W)
 
@@ -60,7 +60,7 @@ class PhraseListComponent(BaseFrameGUI):
         """UIの表示を最新のスニペットデータで更新します。"""
         for item_id in self.tree.get_children():
             self.tree.delete(item_id)
-        
+
         for snippet in self._snippets:
             self.tree.insert('', tk.END, values=(
                 snippet['label'],
@@ -72,7 +72,7 @@ class PhraseListComponent(BaseFrameGUI):
         selected = self.tree.selection()
         if not selected:
             return
-            
+
         index = self.tree.index(selected[0])
         if 0 <= index < len(self._snippets):
             item = self._snippets[index]

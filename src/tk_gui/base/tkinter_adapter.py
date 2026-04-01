@@ -4,8 +4,8 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import TYPE_CHECKING, Optional
 
-from src.tk_gui.windows.main_window import MainWindow
 from src.tk_gui.theme_manager import ThemeManager
+from src.tk_gui.windows.main_window import MainWindow
 from src.utils.error_handler import register_ui_error_callback
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ class TkinterGUIAdapter:
 
         # テーマ管理の開始
         self.theme_manager = ThemeManager(self.root)
-        
+
         # 修正: 保存されている設定値を読み込み、起動時のテーマを決定する
         initial_theme = self.app.settings_manager.get_setting("theme", "light")
         self.theme_manager.apply_theme(initial_theme)
@@ -63,7 +63,7 @@ class TkinterGUIAdapter:
         """アプリケーションを終了し、設定を保存。"""
         # アプリ基盤側に設定の最終保存を依頼
         self.app.settings_manager.save_settings()
-        
+
         if self.root:
             self.root.quit()
             self.root.destroy()

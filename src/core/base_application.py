@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Any, Dict, Optional, Callable
+from typing import TYPE_CHECKING, Optional
 
-from src.core.event_dispatcher import EventDispatcher
-from src.core.config.settings_manager import SettingsManager
 from src.core.config.history_manager import HistoryManager
+from src.core.config.settings_manager import SettingsManager
+from src.core.event_dispatcher import EventDispatcher
 from src.utils.i18n import Translator
 
 if TYPE_CHECKING:
     from src.core.gui_interface import GUIProtocol
-    from src.grep.interface import GrepResult, GrepEngineProtocol
+    from src.grep.interface import GrepEngineProtocol
 
 
 class BaseApplication:
@@ -24,7 +24,7 @@ class BaseApplication:
         # 1. サービス構築
         self.event_dispatcher = EventDispatcher()
         self.settings_manager = SettingsManager(self.event_dispatcher)
-        
+
         # クリーンアップ: もし settings.json に履歴が残っていたら削除して history.json に移行する
         if self.settings_manager.get_setting("history") is not None:
             # 不要なキーを削除して保存 (history.json への移行が済んでいる前提)
@@ -32,14 +32,14 @@ class BaseApplication:
             self.settings_manager.save_settings()
 
         self.history_manager = HistoryManager()
-        
+
         # 2. 翻訳エンジンの初期化
         locales_dir = os.path.join(self.root_dir, "locales")
         self.translator = Translator(self.settings_manager, locales_dir=locales_dir)
-        
+
         # 3. GUI
         self.gui: Optional[GUIProtocol] = gui_adapter
-        
+
         # 4. エンジン
         self.engine = self._init_engine()
 
@@ -47,7 +47,7 @@ class BaseApplication:
         """検索エンジンを初期化します。"""
         try:
             # 型チェック時のエラーを避けるために一連の試行を行う
-            from src.grep.engine import GrepEngine # type: ignore
+            from src.grep.engine import GrepEngine  # type: ignore
             return GrepEngine()
         except (ImportError, AttributeError):
             try:

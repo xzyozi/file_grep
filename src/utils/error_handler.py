@@ -21,7 +21,7 @@ def log_and_show_error(title: str, message: str, exc_info: bool = False) -> None
     GUIへの直接的な依存（messageboxなど）はありません。
     """
     logger.error(f"{title}: {message}", exc_info=exc_info)
-    
+
     if _ui_error_callback:
         _ui_error_callback(title, message)
     else:

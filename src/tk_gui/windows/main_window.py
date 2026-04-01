@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -30,11 +29,11 @@ class MainWindow(BaseToplevelGUI):
         self.geometry('1000x800')
 
         self.engine = self.app.engine
-        
+
         # UI構築
         self._create_widgets()
         self._refresh_menu()
-        
+
         # 設定/言語変更の購読
         self.app.event_dispatcher.subscribe('SETTINGS_CHANGED', self._on_settings_changed)
         self.app.event_dispatcher.subscribe('LANGUAGE_CHANGED', self._refresh_menu)
