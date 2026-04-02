@@ -25,6 +25,8 @@ class MockGrepEngine:
         target_dir: str,
         search_text: str,
         regex_mode: bool = False,
+        ignore_case: bool = False,
+        whole_word: bool = False,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None
@@ -49,8 +51,8 @@ class MockGrepEngine:
                 if on_result:
                     res = GrepResult(
                         file_path=f"mock_data/sample_file_{i}.txt",
-                        line_number=random.randint(1, 100),
-                        line_content=f"This is a mock hit containing '{search_text}' at index {i}"
+                        line_content=f"This is a mock hit containing '{search_text}' at index {i}",
+                        line_number=random.randint(1, 100)
                     )
                     on_result(res)
 

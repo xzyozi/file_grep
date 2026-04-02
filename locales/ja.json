@@ -24,5 +24,7 @@
     "open_file": "ファイルを開く",
     "open_folder": "エクスプローラーで表示",
     "snippet_label": "検索パターン (定型文)",
-    "pattern_regex": "パターン / 正規表現"
+    "pattern_regex": "パターン / 正規表現",
+    "ignore_case": "大文字小文字を区別しない",
+    "whole_word": "単語単位で検索"
 }

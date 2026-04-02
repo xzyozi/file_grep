@@ -24,5 +24,7 @@
     "open_file": "Open File",
     "open_folder": "Show in Explorer",
     "snippet_label": "Search Pattern (Snippet)",
-    "pattern_regex": "Pattern / Regex"
+    "pattern_regex": "Pattern / Regex",
+    "ignore_case": "Ignore Case",
+    "whole_word": "Whole Word Only"
 }
