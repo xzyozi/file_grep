@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import os
 import re
 import threading
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 from src.grep.office_parser import OfficeParser
 
@@ -47,6 +47,8 @@ class GrepEngine:
         target_dir: str,
         search_text: str,
         regex_mode: bool = False,
+        ignore_case: bool = False,
+        whole_word: bool = False,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None
@@ -58,6 +60,8 @@ class GrepEngine:
             target_dir: 検索対象ディレクトリ
             search_text: 検索文字列（または正規表現パターン）
             regex_mode: 正規表現として扱うかどうか
+            ignore_case: 大文字小文字を区別しない
+            whole_word: 単語単位で検索する
             on_progress: (完了ファイル数, 総ファイル数) を通知するコールバック
             on_result: ヒットした GrepResult を通知するコールバック
             on_complete: 合計ヒット数を通知するコールバック
@@ -74,17 +78,26 @@ class GrepEngine:
 
         # 正規表現パターンの事前コンパイル
         pattern = None
+        re_flags = re.IGNORECASE if ignore_case else 0
+        actual_search_text = search_text
+
+        if whole_word and not regex_mode:
+            # 単語単位(非正規表現)の場合は、正規表現の \b を使うために内部的に正規表現化する
+            actual_search_text = r'\b' + re.escape(search_text) + r'\b'
+            regex_mode = True
+
         if regex_mode:
             try:
-                pattern = re.compile(search_text)
+                # 単語単位かつ正規表現の場合は、ユーザーのパターンを \b で囲む
+                final_pattern = r'\b' + actual_search_text + r'\b' if (whole_word and not actual_search_text.startswith(r'\b')) else actual_search_text
+                pattern = re.compile(final_pattern, re_flags)
             except re.error as e:
-                # 不正な正規表現は例外を送出し、呼び出し元に通知
                 raise ValueError(f"Invalid regular expression: {e}")
 
         # ThreadPoolExecutorによる並列読み込み
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:
             futures = {
-                executor.submit(self._scan_file, f, search_text, regex_mode, pattern): f
+                executor.submit(self._scan_file, f, actual_search_text, regex_mode, ignore_case, pattern): f
                 for f in all_files
             }
 
@@ -127,6 +140,7 @@ class GrepEngine:
         file_path: str,
         search_text: str,
         regex_mode: bool,
+        ignore_case: bool,
         pattern: Optional[re.Pattern] = None
     ) -> List[GrepResult]:
         """単一のファイルをスキャンしてヒットした行を返します。"""
@@ -137,62 +151,57 @@ class GrepEngine:
         results = []
         ext = os.path.splitext(file_path)[1].lower()
 
-        # Officeファイルの処理 (拡張子が一致する場合のみ、関数の呼び出しオーバーヘッドを避ける)
+        # Officeファイルの処理
         if ext in ('.docx', '.docm', '.xlsx', '.xlsm'):
-            office_texts = OfficeParser.extract_text(file_path)
-            if office_texts:
-                for i, line in enumerate(office_texts, 1):
-                    if self._check_hit(line, search_text, regex_mode, pattern):
-                        # 将来的には OfficeParser 側で詳細な位置(シート名等)を返すように拡張可能
+            office_data = OfficeParser.extract_content(file_path)
+            if office_data:
+                for item in office_data:
+                    line = item.get("text", "")
+                    location = item.get("location", "Unknown")
+                    meta = item.get("metadata", {})
+                    
+                    if self._check_hit(line, search_text, regex_mode, ignore_case, pattern):
                         results.append(GrepResult(
                             file_path=file_path,
                             line_content=line,
-                            location_display=f"Pos {i}",  # 暫定的な表示
-                            metadata={"office_type": ext, "content_index": i}
+                            location_display=location,
+                            metadata={"office_type": ext, **meta}
                         ))
                 return results
 
-        # 通常のテキストファイルの処理
-
-        # 通常のテキストファイルの処理
-        # バイナリモードで読み込んで、手動で文字コード試行を行う（chardet不使用）
-        raw_data = None
+        # 通常のテキストファイルの処理 (メモリ効率に優れたストリーム読み込み)
         try:
+            # 1. バイナリ判定 (Null Byte Check)
             with open(file_path, 'rb') as f:
-                raw_data = f.read()
+                header = f.read(1024)
+                if b'\x00' in header:
+                    return [] # バイナリと判定してスキップ
+
+            # 2. エンコーディング試行とストリーム検索
+            for enc in self.ENCODINGS:
+                try:
+                    with open(file_path, 'r', encoding=enc, errors='strict') as f:
+                        for i, line in enumerate(f, 1):
+                            if self._check_hit(line, search_text, regex_mode, ignore_case, pattern):
+                                results.append(GrepResult(
+                                    file_path=file_path,
+                                    line_content=line.rstrip(),
+                                    line_number=i
+                                ))
+                    return results # 成功したら終了
+                except (UnicodeDecodeError, LookupError):
+                    continue
         except (PermissionError, OSError):
-            return []
+            pass
 
-        if not raw_data:
-            return []
+        return []
 
-        # エンコーディングを順番に試す
-        content = None
-        for enc in self.ENCODINGS:
-            try:
-                content = raw_data.decode(enc)
-                break
-            except UnicodeDecodeError:
-                continue
-
-        if content is None:
-            # どのエンコーディングでもデコードできない場合はスキップ（バイナリ等）
-            return []
-
-        lines = content.splitlines()
-        for i, line in enumerate(lines, 1):
-            if self._check_hit(line, search_text, regex_mode, pattern):
-                results.append(GrepResult(
-                    file_path=file_path,
-                    line_content=line,
-                    line_number=i
-                ))
-
-        return results
-
-    def _check_hit(self, line: str, search_text: str, regex_mode: bool, pattern: Optional[re.Pattern] = None) -> bool:
+    def _check_hit(self, line: str, search_text: str, regex_mode: bool, ignore_case: bool, pattern: Optional[re.Pattern] = None) -> bool:
         """指定された行が検索テキストにマッチするか判定します。"""
         if regex_mode and pattern:
             return bool(pattern.search(line))
-        else:
-            return search_text in line
+        
+        if ignore_case:
+            return search_text.lower() in line.lower()
+        
+        return search_text in line

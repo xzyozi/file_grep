@@ -25,6 +25,8 @@ class MockGrepEngine:
         target_dir: str,
         search_text: str,
         regex_mode: bool = False,
+        ignore_case: bool = False,
+        whole_word: bool = False,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None

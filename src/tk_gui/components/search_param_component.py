@@ -20,7 +20,7 @@ class SearchParamComponent(BaseFrameGUI):
         self,
         master: tk.Misc,
         app_instance: BaseApplication,
-        on_start: Callable[[str, str, bool], None],
+        on_start: Callable[[str, str, bool, bool, bool], None],
         on_stop: Callable[[], None]
     ) -> None:
         super().__init__(master, app_instance)
@@ -31,6 +31,8 @@ class SearchParamComponent(BaseFrameGUI):
         self.dir_var = tk.StringVar(value=os.getcwd())
         self.keyword_var = tk.StringVar()
         self.regex_var = tk.BooleanVar(value=False)
+        self.ignore_case_var = tk.BooleanVar(value=False)
+        self.whole_word_var = tk.BooleanVar(value=False)
 
         self._create_widgets()
 
@@ -63,6 +65,12 @@ class SearchParamComponent(BaseFrameGUI):
         self.regex_check = ttk.Checkbutton(btn_frame, variable=self.regex_var)
         self.regex_check.pack(side=tk.LEFT, padx=5)
 
+        self.ignore_case_check = ttk.Checkbutton(btn_frame, variable=self.ignore_case_var)
+        self.ignore_case_check.pack(side=tk.LEFT, padx=5)
+
+        self.whole_word_check = ttk.Checkbutton(btn_frame, variable=self.whole_word_var)
+        self.whole_word_check.pack(side=tk.LEFT, padx=5)
+
         self.start_btn = ttk.Button(btn_frame, command=self._on_start_btn_click)
         self.start_btn.pack(side=tk.LEFT, padx=5)
 
@@ -80,6 +88,8 @@ class SearchParamComponent(BaseFrameGUI):
         self.dir_label.config(text=_t('directory') + ":")
         self.kw_label.config(text=_t('keyword') + ":")
         self.regex_check.config(text=_t('regex'))
+        self.ignore_case_check.config(text=_t('ignore_case'))
+        self.whole_word_check.config(text=_t('whole_word'))
         self.start_btn.config(text=_t('start'))
         self.stop_btn.config(text=_t('stop'))
 
@@ -89,7 +99,13 @@ class SearchParamComponent(BaseFrameGUI):
             self.dir_var.set(path)
 
     def _on_start_btn_click(self) -> None:
-        self.on_start(self.dir_var.get(), self.keyword_var.get(), self.regex_var.get())
+        self.on_start(
+            self.dir_var.get(),
+            self.keyword_var.get(),
+            self.regex_var.get(),
+            self.ignore_case_var.get(),
+            self.whole_word_var.get()
+        )
 
     def set_searching_state(self, is_searching: bool) -> None:
         """検索中かどうかに応じてボタンの有効化/無効化を切り替えます。"""
@@ -104,7 +120,9 @@ class SearchParamComponent(BaseFrameGUI):
         self,
         keyword: Optional[str] = None,
         directory: Optional[str] = None,
-        regex_mode: Optional[bool] = None
+        regex_mode: Optional[bool] = None,
+        ignore_case: Optional[bool] = None,
+        whole_word: Optional[bool] = None
     ) -> None:
         """入力欄の値を設定します。"""
         if keyword is not None:
@@ -113,3 +131,7 @@ class SearchParamComponent(BaseFrameGUI):
             self.dir_var.set(directory)
         if regex_mode is not None:
             self.regex_var.set(regex_mode)
+        if ignore_case is not None:
+            self.ignore_case_var.set(ignore_case)
+        if whole_word is not None:
+            self.whole_word_var.set(whole_word)
