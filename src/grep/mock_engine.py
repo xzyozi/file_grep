@@ -49,8 +49,8 @@ class MockGrepEngine:
                 if on_result:
                     res = GrepResult(
                         file_path=f"mock_data/sample_file_{i}.txt",
-                        line_number=random.randint(1, 100),
-                        line_content=f"This is a mock hit containing '{search_text}' at index {i}"
+                        line_content=f"This is a mock hit containing '{search_text}' at index {i}",
+                        line_number=random.randint(1, 100)
                     )
                     on_result(res)
 

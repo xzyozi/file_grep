@@ -24,11 +24,18 @@ class CustomMockEngine(MockGrepEngine):
         super().__init__()
         self.completed = False
 
-    def search(self, *args, **kwargs):
-        # 実際の結果を模しつつ、親のメソッド（MockGrepEngine.search）を呼ぶ
-        hit_count = super().search(*args, **kwargs)
+    def search(self, target_dir, search_text, regex_mode=False, on_progress=None, on_result=None, on_complete=None):
+        if on_result:
+            res = GrepResult(
+                file_path="mock_data/integration_test.txt",
+                line_content=f"Hit found for {search_text}",
+                line_number=10,
+                location_display="TestPos"
+            )
+            on_result(res)
+        
         self.completed = True
-        return hit_count
+        return 1
 
 class TestSystemIntegration:
     """

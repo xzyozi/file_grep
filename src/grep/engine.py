@@ -1,9 +1,9 @@
 import concurrent.futures
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 import re
 import threading
-from typing import Callable, List, Optional
+from typing import Any, Callable, Dict, List
 
 from src.grep.office_parser import OfficeParser
 
@@ -12,8 +12,10 @@ from src.grep.office_parser import OfficeParser
 class GrepResult:
     """Grep検索の単一ヒット結果を保持するデータクラス"""
     file_path: str
-    line_number: int
     line_content: str
+    line_number: int = 0  # 従来の行番号
+    location_display: str = ""  # GUI表示用の位置情報 (例: "Sheet1!A5")
+    metadata: Dict[str, Any] = field(default_factory=dict)  # 拡張用メタデータ
 
 class GrepEngine:
     """
@@ -141,10 +143,12 @@ class GrepEngine:
             if office_texts:
                 for i, line in enumerate(office_texts, 1):
                     if self._check_hit(line, search_text, regex_mode, pattern):
+                        # 将来的には OfficeParser 側で詳細な位置(シート名等)を返すように拡張可能
                         results.append(GrepResult(
                             file_path=file_path,
-                            line_number=i,
-                            line_content=f"[Office] {line}"
+                            line_content=line,
+                            location_display=f"Pos {i}",  # 暫定的な表示
+                            metadata={"office_type": ext, "content_index": i}
                         ))
                 return results
 
@@ -180,8 +184,8 @@ class GrepEngine:
             if self._check_hit(line, search_text, regex_mode, pattern):
                 results.append(GrepResult(
                     file_path=file_path,
-                    line_number=i,
-                    line_content=line
+                    line_content=line,
+                    line_number=i
                 ))
 
         return results
