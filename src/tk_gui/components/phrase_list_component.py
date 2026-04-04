@@ -9,6 +9,8 @@ from src.tk_gui.base.base_frame_gui import BaseFrameGUI
 if TYPE_CHECKING:
     from src.core.base_application import BaseApplication
 
+from src.grep.presets import SearchPresets
+
 
 class PhraseListComponent(BaseFrameGUI):
     """
@@ -19,18 +21,12 @@ class PhraseListComponent(BaseFrameGUI):
         self,
         master: tk.Misc,
         app_instance: BaseApplication,
-        on_select: Callable[[str, str], None]
+        on_select: Callable[[str, str, bool], None]
     ) -> None:
         super().__init__(master, app_instance)
         self.on_select = on_select
-        # 固定のプリセットスニペット
-        self._snippets: List[Dict[str, str]] = [
-            {'label': 'Python: Function', 'pattern': r'^def\s+\w+\('},
-            {'label': 'Python: Class', 'pattern': r'^class\s+\w+[:\(]'},
-            {'label': 'Import statements', 'pattern': r'^import\s+|^from\s+'},
-            {'label': 'TODO Comments', 'pattern': r'#\s*TODO[:\s]'},
-            {'label': 'Email address', 'pattern': r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'},
-        ]
+        # スニペットデータは SearchPresets から取得
+        self._snippets = SearchPresets.get_all()
         self._create_widgets()
 
         # 言語変更イベントの購読
@@ -66,10 +62,10 @@ class PhraseListComponent(BaseFrameGUI):
         for item_id in self.tree.get_children():
             self.tree.delete(item_id)
 
-        for snippet in self._snippets:
+        for label, pattern, is_regex in self._snippets:
             self.tree.insert('', tk.END, values=(
-                snippet['label'],
-                snippet['pattern']
+                label,
+                pattern
             ))
 
     def _on_double_click(self, event: tk.Event) -> None:
@@ -80,5 +76,5 @@ class PhraseListComponent(BaseFrameGUI):
 
         index = self.tree.index(selected[0])
         if 0 <= index < len(self._snippets):
-            snippet = self._snippets[index]
-            self.on_select(snippet['label'], snippet['pattern'])
+            label, pattern, is_regex = self._snippets[index]
+            self.on_select(label, pattern, is_regex)

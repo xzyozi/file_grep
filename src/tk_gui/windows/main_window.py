@@ -102,7 +102,7 @@ class MainWindow(BaseToplevelGUI):
         self.phrase_list = PhraseListComponent(
             self.notebook,
             self.app,
-            on_select=lambda label, pattern: self.search_params.set_values(keyword=pattern)
+            on_select=lambda label, pattern, is_regex: self.search_params.set_values(keyword=pattern, regex_mode=is_regex)
         )
         self.notebook.add(self.phrase_list, text=_t('snippets'))
 
