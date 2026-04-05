@@ -4,68 +4,71 @@ import pytest
 from src.grep.presets import SearchPresets
 
 @pytest.fixture
-def temp_presets(tmp_path, monkeypatch):
-    """テスト用の一時的な presets.json を作成し、SearchPresets に適用するフィクスチャ。"""
-    # テストデータ
-    mock_data = [
-        {
-            "category": "Test Category",
-            "items": [
-                ["Test Label 1", "pattern1", True],
-                ["Test Label 2", "pattern2", False]
-            ]
-        }
-    ]
-    
-    # プロジェクトルートとして扱われる場所に config/ フォルダを作って保存
+def mock_presets_env(tmp_path, monkeypatch):
+    """テスト用の config/presets.json 環境を構築するフィクスチャ。"""
+    # 実際と同じ config/ 構造をシミュレート
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     presets_file = config_dir / "presets.json"
-    presets_file.write_text(json.dumps(mock_data), encoding='utf-8')
     
-    # SearchPresets 内のパス設定とキャッシュをリセット (モンキーパッチ)
-    monkeypatch.setattr(SearchPresets, "PRESETS_FILE", str(presets_file))
+    data = [
+        {
+            "category": "Test Cat",
+            "items": [
+                ["Hit One", r"^HIT1", True],
+                ["Hit Two", r"HIT2$", False]
+            ]
+        }
+    ]
+    presets_file.write_text(json.dumps(data), encoding='utf-8')
+    
+    # 既存のキャッシュをクリアし、パス設定を一時的に上書き
     monkeypatch.setattr(SearchPresets, "_presets", None)
+    monkeypatch.setattr(SearchPresets, "PRESETS_FILE", str(presets_file))
     
     return presets_file
 
-def test_get_all_loads_from_json(temp_presets):
-    """1. get_all が JSON からすべてのアイテムを正しく読み込めるか検証。"""
-    presets = SearchPresets.get_all()
+def test_load_all_presets_from_custom_path(mock_presets_env):
+    """1. 指定したパスから正しくすべてのプリセットが読み込まれるか。"""
+    all_presets = SearchPresets.get_all()
     
-    assert len(presets) == 2
-    assert presets[0] == ("Test Label 1", "pattern1", True)
-    assert presets[1] == ("Test Label 2", "pattern2", False)
+    assert len(all_presets) == 2
+    assert all_presets[0] == ("Hit One", r"^HIT1", True)
+    assert all_presets[1] == ("Hit Two", r"HIT2$", False)
 
-def test_get_by_label(temp_presets):
-    """2. ラベル名によるパターン検索が正しく機能するか検証。"""
-    pattern, is_regex = SearchPresets.get_by_label("Test Label 1")
-    assert pattern == "pattern1"
+def test_get_by_label_functionality(mock_presets_env):
+    """2. ラベル指定での検索が期待通りにパターンとフラグを返すか。"""
+    pattern, is_regex = SearchPresets.get_by_label("Hit One")
+    assert pattern == r"^HIT1"
     assert is_regex is True
     
-    # 存在しないラベル
-    pattern, is_regex = SearchPresets.get_by_label("No such label")
+    # 存在しないラベルの場合
+    pattern, is_regex = SearchPresets.get_by_label("NonExistent")
     assert pattern == ""
     assert is_regex is False
 
-def test_invalid_json_handling(tmp_path, monkeypatch):
-    """3. 不正な形式の JSON ファイルがある場合の堅牢性を検証。"""
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-    bad_file = config_dir / "bad_presets.json"
-    bad_file.write_text("This is not JSON", encoding='utf-8')
+def test_handling_invalid_json(tmp_path, monkeypatch):
+    """3. JSON が破壊されている場合にアプリケーションが停止せず、空リストを返すか。"""
+    bad_file = tmp_path / "broken.json"
+    bad_file.write_text("NOT A JSON FILE CONTENT", encoding='utf-8')
     
+    monkeypatch.setattr(SearchPresets, "_presets", None)
     monkeypatch.setattr(SearchPresets, "PRESETS_FILE", str(bad_file))
-    monkeypatch.setattr(SearchPresets, "_presets", None)
     
-    # エラーにならず、空リストが返ることを期待
-    presets = SearchPresets.get_all()
-    assert presets == []
+    # 例外がスローされず、空リストが返ることを確認
+    results = SearchPresets.get_all()
+    assert results == []
 
-def test_missing_file_handling(monkeypatch):
-    """4. ファイルが存在しない場合に空リストを返すか検証。"""
-    monkeypatch.setattr(SearchPresets, "PRESETS_FILE", "non_existent_file.json")
-    monkeypatch.setattr(SearchPresets, "_presets", None)
+def test_caching_mechanism(mock_presets_env):
+    """4. 二回目以降の呼び出しでディスクアクセスをせず、キャッシュが利用されているか。"""
+    # 初回呼び出し
+    first_call = SearchPresets.get_all()
     
-    presets = SearchPresets.get_all()
-    assert presets == []
+    # テストファイルを削除
+    os.remove(str(mock_presets_env))
+    
+    # 二回目呼び出し。キャッシュされていればファイルがなくても取れる
+    second_call = SearchPresets.get_all()
+    
+    assert first_call == second_call
+    assert len(second_call) == 2
