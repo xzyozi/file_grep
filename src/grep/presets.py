@@ -9,7 +9,9 @@ class SearchPresets:
     """
 
     _presets: Optional[List[Tuple[str, str, bool]]] = None
-    PRESETS_FILE = "presets.json"
+    # 実行場所に関わらず config/presets.json を見つけられるように絶対パスを構築
+    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    PRESETS_FILE = os.path.join(_BASE_DIR, "config", "presets.json")
 
     @classmethod
     def _load_presets_if_needed(cls) -> None:
