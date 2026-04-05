@@ -1,0 +1,53 @@
+[
+    {
+        "category": "Programming (Python)",
+        "items": [
+            ["Python: Function", "^def\\s+\\w+\\(", true],
+            ["Python: Class", "^class\\s+\\w+[:\\(]", true],
+            ["Import statements", "^import\\s+|^from\\s+", true],
+            ["TODO / FIXME", "(TODO|FIXME|HACK|NOTE):", true]
+        ]
+    },
+    {
+        "category": "Structure / Strings",
+        "items": [
+            ["JSON Key", "\\\"\\w+\\\"\\s*:", true],
+            ["XML Tag", "<[^>]+>", true],
+            ["Empty Line", "^\\s*$", true],
+            ["Trailing Space", "\\s+$", true],
+            ["UUID / GUID", "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", true],
+            ["Hex Color", "#(?:[0-9a-fA-F]{3}){1,2}\\b", true]
+        ]
+    },
+    {
+        "category": "Network / Web",
+        "items": [
+            ["IPv4 Address", "\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b", true],
+            ["URL (HTTP/HTTPS)", "https?://[\\w/:%#\\$&\\?\\(\\)~\\.=\\+\\-]+", true],
+            ["Email Address", "[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+", true]
+        ]
+    },
+    {
+        "category": "Logs / Server",
+        "items": [
+            ["HTTP Error (4xx/5xx)", " [45]\\d{2} ", true],
+            ["Timestamp (YYYY-MM-DD)", "\\d{4}-\\d{2}-\\d{2}", true],
+            ["Time (HH:MM:SS)", "\\d{2}:\\d{2}:\\d{2}", true]
+        ]
+    },
+    {
+        "category": "Japanese / Multi-byte",
+        "items": [
+            ["Full-width chars", "[^\\x01-\\x7E]+", true],
+            ["Hiragana", "[ぁ-ん]+", true],
+            ["Katakana", "[ァ-ヶー]+", true],
+            ["Kanji", "[\\u4E00-\\u9FD0]+", true]
+        ]
+    },
+    {
+        "category": "Other",
+        "items": [
+            ["Phone Number (JP)", "0\\d{1,4}-\\d{1,4}-\\d{4}", true]
+        ]
+    }
+]
