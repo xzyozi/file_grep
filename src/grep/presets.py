@@ -1,58 +1,48 @@
-from __future__ import annotations
-
-from typing import Dict, List, Tuple
+import json
+import os
+from typing import List, Optional, Tuple
 
 
 class SearchPresets:
     """
-    再利用可能な検索パターン（スニペット）を管理するクラス。
+    外部ファイル (presets.json) から検索パターン（スニペット）を読み込んで管理するクラス。
     """
 
-    # (ラベル名, 検索パターン, 正規表現かどうか)
-    PRESETS: List[Tuple[str, str, bool]] = [
-        # --- プログラミング (Python等) ---
-        ("Python: Function", r"^def\s+\w+\(", True),
-        ("Python: Class", r"^class\s+\w+[:\(]", True),
-        ("Import statements", r"^import\s+|^from\s+", True),
-        ("TODO / FIXME", r"(TODO|FIXME|HACK|NOTE):", True),
-        
-        # --- 構造化データ/文字列 ---
-        ("JSON Key", r"\"\w+\"\s*:", True),
-        ("XML Tag", r"<[^>]+>", True),
-        ("Empty Line", r"^\s*$", True),
-        ("Trailing Space", r"\s+$", True),
-        ("UUID / GUID", r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", True),
-        ("Hex Color", r"#(?:[0-9a-fA-F]{3}){1,2}\b", True),
-        
-        # --- ネットワーク・Web ---
-        ("IPv4 Address", r"\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b", True),
-        ("URL (HTTP/HTTPS)", r"https?://[\w/:%#\$&\?\(\)~\.=\+\-]+", True),
-        ("Email Address", r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", True),
-        
-        # --- ログ・サーバー状況 ---
-        ("HTTP Error (4xx/5xx)", r" [45]\d{2} ", True),
-        ("Timestamp (YYYY-MM-DD)", r"\d{4}-\d{2}-\d{2}", True),
-        ("Time (HH:MM:SS)", r"\d{2}:\d{2}:\d{2}", True),
-        
-        # --- 日本語・文字種 ---
-        ("全角文字 (含記号)", r"[^\x01-\x7E]+", True),
-        ("ひらがな", r"[ぁ-ん]+", True),
-        ("カタカナ", r"[ァ-ヶー]+", True),
-        ("漢字", r"[\u4E00-\u9FD0]+", True),
-        
-        # --- その他 ---
-        ("Phone Number (Japan)", r"0\d{1,4}-\d{1,4}-\d{4}", True),
-    ]
+    _presets: Optional[List[Tuple[str, str, bool]]] = None
+    PRESETS_FILE = "presets.json"
+
+    @classmethod
+    def _load_presets_if_needed(cls) -> None:
+        """presets.json からデータを読み込み、_presets キャッシュを構築します。"""
+        if cls._presets is not None:
+            return
+
+        cls._presets = []
+        if not os.path.exists(cls.PRESETS_FILE):
+            return
+
+        try:
+            with open(cls.PRESETS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                for cat_info in data:
+                    items = cat_info.get('items', [])
+                    for label, pattern, is_regex in items:
+                        cls._presets.append((label, pattern, is_regex))
+        except (json.JSONDecodeError, ValueError, Exception):
+            # 読み込み失敗時は空のまま
+            pass
 
     @classmethod
     def get_all(cls) -> List[Tuple[str, str, bool]]:
         """すべてのプリセットを返します。"""
-        return cls.PRESETS
+        cls._load_presets_if_needed()
+        return cls._presets or []
 
     @classmethod
     def get_by_label(cls, label: str) -> Tuple[str, bool]:
         """ラベル名から検索パターンを取得します。"""
-        for l, p, r in cls.PRESETS:
+        cls._load_presets_if_needed()
+        for l, p, r in (cls._presets or []):
             if l == label:
                 return p, r
         return "", False
