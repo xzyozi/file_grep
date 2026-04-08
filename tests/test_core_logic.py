@@ -1,6 +1,7 @@
 import os
 import json
 import pytest
+from src.grep.engine import GrepEngine
 from src.core.event_dispatcher import EventDispatcher
 from src.core.config.settings_manager import SettingsManager
 from src.core.config.history_manager import HistoryManager
@@ -125,3 +126,49 @@ class TestTranslator:
         assert translator.translate("only_en") == "Only English"
         # どちらにもない場合はキーをそのまま返す
         assert translator.translate("unknown") == "unknown"
+
+class TestGrepEngine:
+    def test_exclude_directories(self, tmp_path):
+        """除外ディレクトリ指定が正しく機能するか検証する。"""
+        # テスト用ディレクトリ構造の作成
+        # root/
+        #   target_file.txt (hit!)
+        #   node_modules/
+        #     ignored_file.txt (should be skipped)
+        #   .git/
+        #     ignored_git.txt (should be skipped)
+        
+        root = tmp_path / "root"
+        root.mkdir()
+        (root / "target_file.txt").write_text("find_me", encoding="utf-8")
+        
+        nm_dir = root / "node_modules"
+        nm_dir.mkdir()
+        (nm_dir / "ignored_file.txt").write_text("find_me", encoding="utf-8")
+        
+        git_dir = root / ".git"
+        git_dir.mkdir()
+        (git_dir / "ignored_git.txt").write_text("find_me", encoding="utf-8")
+        
+        engine = GrepEngine()
+        results = []
+        
+        # 除外指定なし
+        engine.search(
+            target_dir=str(root),
+            search_text="find_me",
+            on_result=lambda r: results.append(r)
+        )
+        assert len(results) == 3
+        
+        # 除外指定あり (.git と node_modules)
+        results = []
+        engine.search(
+            target_dir=str(root),
+            search_text="find_me",
+            exclude_dirs=["node_modules", ".git"],
+            on_result=lambda r: results.append(r)
+        )
+        # 除外されたため、ルート直下の1件のみヒットするはず
+        assert len(results) == 1
+        assert os.path.basename(results[0].file_path) == "target_file.txt"
