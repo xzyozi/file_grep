@@ -49,6 +49,7 @@ class GrepEngine:
         regex_mode: bool = False,
         ignore_case: bool = False,
         whole_word: bool = False,
+        exclude_dirs: Optional[List[str]] = None,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None
@@ -62,6 +63,7 @@ class GrepEngine:
             regex_mode: 正規表現として扱うかどうか
             ignore_case: 大文字小文字を区別しない
             whole_word: 単語単位で検索する
+            exclude_dirs: 除外するディレクトリ名のリスト (例: ['.git', 'node_modules'])
             on_progress: (完了ファイル数, 総ファイル数) を通知するコールバック
             on_result: ヒットした GrepResult を通知するコールバック
             on_complete: 合計ヒット数を通知するコールバック
@@ -73,7 +75,7 @@ class GrepEngine:
         self._stop_event.clear()
 
         hit_count = 0
-        all_files = self._collect_files(target_dir)
+        all_files = self._collect_files(target_dir, exclude_dirs)
         total_files = len(all_files)
 
         # 正規表現パターンの事前コンパイル
@@ -123,12 +125,19 @@ class GrepEngine:
 
         return hit_count
 
-    def _collect_files(self, target_dir: str) -> List[str]:
+    def _collect_files(self, target_dir: str, exclude_dirs: Optional[List[str]] = None) -> List[str]:
         """検索対象となるファイルのリストを収集します。"""
         file_list = []
-        for root, _, files in os.walk(target_dir):
+        excludes = set(exclude_dirs) if exclude_dirs else set()
+
+        for root, dirs, files in os.walk(target_dir):
             if self._stop_event.is_set():
                 break
+
+            # 除外ディレクトリのフィルタリング (in-place modification)
+            if excludes:
+                dirs[:] = [d for d in dirs if d not in excludes]
+
             for file in files:
                 ext = os.path.splitext(file)[1].lower()
                 if ext not in self.BINARY_EXTENSIONS:

@@ -1,6 +1,7 @@
 import os
 import json
 import pytest
+from src.grep.engine import GrepEngine
 from src.core.event_dispatcher import EventDispatcher
 from src.core.config.settings_manager import SettingsManager
 from src.core.config.history_manager import HistoryManager
@@ -125,3 +126,55 @@ class TestTranslator:
         assert translator.translate("only_en") == "Only English"
         # どちらにもない場合はキーをそのまま返す
         assert translator.translate("unknown") == "unknown"
+
+class TestGrepEngine:
+    def test_exclude_directories_deep_and_exact(self, tmp_path):
+        """除外ディレクトリ指定が深層および名前の完全一致で機能するか検証する。"""
+        # root/
+        #   target.txt (HIT)
+        #   subdir/
+        #     target.txt (HIT)
+        #     node_modules/
+        #       ignored.txt (SKIP)
+        #   binary/ (名前の一部が一致するが除外対象ではない)
+        #     target.txt (HIT)
+        
+        root = tmp_path / "root"
+        root.mkdir()
+        (root / "target.txt").write_text("match", encoding="utf-8")
+        
+        subdir = root / "subdir"
+        subdir.mkdir()
+        (subdir / "target.txt").write_text("match", encoding="utf-8")
+        
+        nm_dir = subdir / "node_modules"
+        nm_dir.mkdir()
+        (nm_dir / "ignored.txt").write_text("match", encoding="utf-8")
+        
+        bin_dir = root / "binary"
+        bin_dir.mkdir()
+        (bin_dir / "target.txt").write_text("match", encoding="utf-8")
+        
+        engine = GrepEngine()
+        results = []
+        
+        # 'node_modules' を除外 (bin は除外しない)
+        engine.search(
+            target_dir=str(root),
+            search_text="match",
+            exclude_dirs=["node_modules"],
+            on_result=lambda r: results.append(r)
+        )
+        
+        # 期待値: 
+        # root/target.txt (OK)
+        # root/subdir/target.txt (OK)
+        # root/binary/target.txt (OK - 'bin'ではないため)
+        # ※ root/subdir/node_modules/ignored.txt (SKIP)
+        assert len(results) == 3
+        
+        paths = [os.path.basename(os.path.dirname(r.file_path)) for r in results]
+        assert "node_modules" not in paths
+        assert "binary" in paths
+        assert "subdir" in paths
+        assert "root" in [os.path.basename(os.path.dirname(r.file_path)) if os.path.basename(os.path.dirname(r.file_path)) != "root" else "root" for r in results]

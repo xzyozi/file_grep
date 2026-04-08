@@ -25,7 +25,7 @@ class CustomMockEngine(MockGrepEngine):
         super().__init__()
         self.completed = False
 
-    def search(self, target_dir, search_text, regex_mode=False, ignore_case=False, whole_word=False, on_progress=None, on_result=None, on_complete=None):
+    def search(self, target_dir, search_text, regex_mode=False, ignore_case=False, whole_word=False, exclude_dirs=None, on_progress=None, on_result=None, on_complete=None):
         if on_progress:
             on_progress(20, 20) # 20個完了と通知
         if on_result:
