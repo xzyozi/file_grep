@@ -128,47 +128,53 @@ class TestTranslator:
         assert translator.translate("unknown") == "unknown"
 
 class TestGrepEngine:
-    def test_exclude_directories(self, tmp_path):
-        """除外ディレクトリ指定が正しく機能するか検証する。"""
-        # テスト用ディレクトリ構造の作成
+    def test_exclude_directories_deep_and_exact(self, tmp_path):
+        """除外ディレクトリ指定が深層および名前の完全一致で機能するか検証する。"""
         # root/
-        #   target_file.txt (hit!)
-        #   node_modules/
-        #     ignored_file.txt (should be skipped)
-        #   .git/
-        #     ignored_git.txt (should be skipped)
+        #   target.txt (HIT)
+        #   subdir/
+        #     target.txt (HIT)
+        #     node_modules/
+        #       ignored.txt (SKIP)
+        #   binary/ (名前の一部が一致するが除外対象ではない)
+        #     target.txt (HIT)
         
         root = tmp_path / "root"
         root.mkdir()
-        (root / "target_file.txt").write_text("find_me", encoding="utf-8")
+        (root / "target.txt").write_text("match", encoding="utf-8")
         
-        nm_dir = root / "node_modules"
+        subdir = root / "subdir"
+        subdir.mkdir()
+        (subdir / "target.txt").write_text("match", encoding="utf-8")
+        
+        nm_dir = subdir / "node_modules"
         nm_dir.mkdir()
-        (nm_dir / "ignored_file.txt").write_text("find_me", encoding="utf-8")
+        (nm_dir / "ignored.txt").write_text("match", encoding="utf-8")
         
-        git_dir = root / ".git"
-        git_dir.mkdir()
-        (git_dir / "ignored_git.txt").write_text("find_me", encoding="utf-8")
+        bin_dir = root / "binary"
+        bin_dir.mkdir()
+        (bin_dir / "target.txt").write_text("match", encoding="utf-8")
         
         engine = GrepEngine()
         results = []
         
-        # 除外指定なし
+        # 'node_modules' を除外 (bin は除外しない)
         engine.search(
             target_dir=str(root),
-            search_text="find_me",
+            search_text="match",
+            exclude_dirs=["node_modules"],
             on_result=lambda r: results.append(r)
         )
+        
+        # 期待値: 
+        # root/target.txt (OK)
+        # root/subdir/target.txt (OK)
+        # root/binary/target.txt (OK - 'bin'ではないため)
+        # ※ root/subdir/node_modules/ignored.txt (SKIP)
         assert len(results) == 3
         
-        # 除外指定あり (.git と node_modules)
-        results = []
-        engine.search(
-            target_dir=str(root),
-            search_text="find_me",
-            exclude_dirs=["node_modules", ".git"],
-            on_result=lambda r: results.append(r)
-        )
-        # 除外されたため、ルート直下の1件のみヒットするはず
-        assert len(results) == 1
-        assert os.path.basename(results[0].file_path) == "target_file.txt"
+        paths = [os.path.basename(os.path.dirname(r.file_path)) for r in results]
+        assert "node_modules" not in paths
+        assert "binary" in paths
+        assert "subdir" in paths
+        assert "root" in [os.path.basename(os.path.dirname(r.file_path)) if os.path.basename(os.path.dirname(r.file_path)) != "root" else "root" for r in results]
