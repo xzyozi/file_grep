@@ -26,5 +26,8 @@
     "snippet_label": "Search Pattern (Snippet)",
     "pattern_regex": "Pattern / Regex",
     "ignore_case": "Ignore Case",
-    "whole_word": "Whole Word Only"
+    "whole_word": "Whole Word Only",
+    "advanced": "Advanced",
+    "exclude_dirs": "Exclude Dirs",
+    "exclude_dirs_hint": "Comma-separated (e.g. .git,node_modules)"
 }

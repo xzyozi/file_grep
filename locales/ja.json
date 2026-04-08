@@ -26,5 +26,8 @@
     "snippet_label": "検索パターン (定型文)",
     "pattern_regex": "パターン / 正規表現",
     "ignore_case": "大文字小文字を区別しない",
-    "whole_word": "単語単位で検索"
+    "whole_word": "単語単位で検索",
+    "advanced": "詳細設定",
+    "exclude_dirs": "除外ディレクトリ",
+    "exclude_dirs_hint": "カンマ区切りで入力 (例: .git,node_modules)"
 }
