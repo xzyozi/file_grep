@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import threading
 import time
-from typing import Callable, Optional
+from typing import Callable, List, Optional
 
 from src.grep.engine import GrepResult
 
@@ -28,6 +28,7 @@ class MockGrepEngine:
         ignore_case: bool = False,
         whole_word: bool = False,
         exclude_dirs: Optional[List[str]] = None,
+        exclude_exts: Optional[List[str]] = None,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None
