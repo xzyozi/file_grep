@@ -1,7 +1,12 @@
-import tkinter as tk
+import os
+
 import pytest
+import tkinter as tk
 from src.tk_gui.components.search_param_component import SearchParamComponent
 from src.core.base_application import BaseApplication
+
+if not os.environ.get("DISPLAY"):
+    pytest.skip("Skipping UI tests because no DISPLAY is set.", allow_module_level=True)
 
 class MockGUIAdapter:
     def initialize(self): pass

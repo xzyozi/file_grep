@@ -31,12 +31,22 @@ class GrepEngine:
         '.zip', '.tar', '.gz', '.rar', '.7z', '.class', '.obj', '.o'
     }
 
+    # デフォルトで除外するディレクトリ名
+    DEFAULT_EXCLUDE_DIRS = ['.git', 'node_modules', '__pycache__']
+
     # 試行する文字コード（テキストファイル用）
     ENCODINGS = ['utf-8', 'cp932', 'shift_jis', 'euc_jp', 'iso-2022-jp', 'utf-16']
 
-    def __init__(self, max_threads: int = 4):
+    def __init__(
+        self,
+        max_threads: int = 4,
+        exclude_dirs: Optional[List[str]] = None,
+        exclude_exts: Optional[List[str]] = None,
+    ):
         self.max_threads = max_threads
         self._stop_event = threading.Event()
+        self.exclude_dirs = self._normalize_dirs(exclude_dirs) if exclude_dirs is not None else list(self.DEFAULT_EXCLUDE_DIRS)
+        self.exclude_exts = self._normalize_extensions(exclude_exts) if exclude_exts is not None else []
 
     def stop(self) -> None:
         """検索を中断します。スレッドセーフにイベントを発行します。"""
@@ -50,6 +60,7 @@ class GrepEngine:
         ignore_case: bool = False,
         whole_word: bool = False,
         exclude_dirs: Optional[List[str]] = None,
+        exclude_exts: Optional[List[str]] = None,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None
@@ -64,6 +75,7 @@ class GrepEngine:
             ignore_case: 大文字小文字を区別しない
             whole_word: 単語単位で検索する
             exclude_dirs: 除外するディレクトリ名のリスト (例: ['.git', 'node_modules'])
+            exclude_exts: 除外する拡張子のリスト (例: ['.log', '.tmp'])
             on_progress: (完了ファイル数, 総ファイル数) を通知するコールバック
             on_result: ヒットした GrepResult を通知するコールバック
             on_complete: 合計ヒット数を通知するコールバック
@@ -74,8 +86,11 @@ class GrepEngine:
         # 前回の停止状態をクリアし、常に新しく開始できるようにする
         self._stop_event.clear()
 
+        effective_dirs = self._normalize_dirs(exclude_dirs) if exclude_dirs is not None else self.exclude_dirs
+        effective_exts = self._normalize_extensions(exclude_exts) if exclude_exts is not None else self.exclude_exts
+
         hit_count = 0
-        all_files = self._collect_files(target_dir, exclude_dirs)
+        all_files = self._collect_files(target_dir, effective_dirs, effective_exts)
         total_files = len(all_files)
 
         # 正規表現パターンの事前コンパイル
@@ -125,23 +140,30 @@ class GrepEngine:
 
         return hit_count
 
-    def _collect_files(self, target_dir: str, exclude_dirs: Optional[List[str]] = None) -> List[str]:
+    def _collect_files(
+        self,
+        target_dir: str,
+        exclude_dirs: Optional[List[str]] = None,
+        exclude_exts: Optional[List[str]] = None
+    ) -> List[str]:
         """検索対象となるファイルのリストを収集します。"""
         file_list = []
-        excludes = set(exclude_dirs) if exclude_dirs else set()
+        dir_excludes = set(exclude_dirs) if exclude_dirs else set()
+        ext_excludes = set(self._normalize_extensions(exclude_exts)) if exclude_exts else set()
 
         for root, dirs, files in os.walk(target_dir):
             if self._stop_event.is_set():
                 break
 
             # 除外ディレクトリのフィルタリング (in-place modification)
-            if excludes:
-                dirs[:] = [d for d in dirs if d not in excludes]
+            if dir_excludes:
+                dirs[:] = [d for d in dirs if d not in dir_excludes]
 
             for file in files:
                 ext = os.path.splitext(file)[1].lower()
-                if ext not in self.BINARY_EXTENSIONS:
-                    file_list.append(os.path.join(root, file))
+                if ext in self.BINARY_EXTENSIONS or ext in ext_excludes:
+                    continue
+                file_list.append(os.path.join(root, file))
         return file_list
 
     def _scan_file(
@@ -204,6 +226,24 @@ class GrepEngine:
             pass
 
         return []
+
+    def _normalize_dirs(self, exclude_dirs: Optional[List[str]]) -> List[str]:
+        if exclude_dirs is None:
+            return []
+        return [str(item).strip() for item in exclude_dirs if str(item).strip()]
+
+    def _normalize_extensions(self, exclude_exts: Optional[List[str]]) -> List[str]:
+        if exclude_exts is None:
+            return []
+        normalized: List[str] = []
+        for item in exclude_exts:
+            ext = str(item).strip()
+            if not ext:
+                continue
+            if not ext.startswith('.'):
+                ext = f'.{ext}'
+            normalized.append(ext.lower())
+        return normalized
 
     def _check_hit(self, line: str, search_text: str, regex_mode: bool, ignore_case: bool, pattern: Optional[re.Pattern] = None) -> bool:
         """指定された行が検索テキストにマッチするか判定します。"""
