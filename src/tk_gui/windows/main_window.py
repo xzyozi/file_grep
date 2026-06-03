@@ -126,6 +126,16 @@ class MainWindow(BaseToplevelGUI):
             messagebox.showerror('Error', 'GrepEngine is not loaded.')
             return
 
+        # SettingsManager から除外拡張子リストを取得してパース
+        raw_exts = ""
+        try:
+            raw_exts = self.app.settings_manager.get_setting("exclude_extensions", "")
+        except Exception:
+            raw_exts = ""
+        exclude_exts = [e.strip() for e in raw_exts.split(',') if e.strip()]
+        # 拡張子がドットで始まらない場合は補正
+        exclude_exts = [('.' + e) if not e.startswith('.') else e for e in exclude_exts]
+
         self.history_list.add_history(search_text, target_dir, regex_mode)
         self.notebook.select(0)
         self.result_list.clear()
@@ -141,6 +151,7 @@ class MainWindow(BaseToplevelGUI):
                 ignore_case=ignore_case,
                 whole_word=whole_word,
                 exclude_dirs=exclude_dirs,
+                exclude_exts=exclude_exts,
                 exclude_file_patterns=exclude_file_patterns,
                 on_progress=self._update_progress,
                 on_result=self._add_to_list,
