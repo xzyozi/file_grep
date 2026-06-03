@@ -3,7 +3,9 @@ import os
 import pytest
 import tkinter as tk
 from src.tk_gui.components.search_param_component import SearchParamComponent
+from src.tk_gui.windows.settings_window import SettingsWindow
 from src.core.base_application import BaseApplication
+from src.core.config.settings_manager import SettingsManager
 
 if not os.environ.get("DISPLAY"):
     pytest.skip("Skipping UI tests because no DISPLAY is set.", allow_module_level=True)
@@ -62,3 +64,41 @@ def test_advanced_toggle_logic(app_root):
     comp._toggle_advanced()
     assert comp.show_advanced is False
     assert not comp.advanced_frame.grid_info()
+
+
+def test_settings_window_exclude_extensions_save(app_root):
+    """SettingsWindow が拡張子除外設定を SettingsManager に保存できるか検証。"""
+    root, app = app_root
+    settings_manager = SettingsManager(app.event_dispatcher)
+    
+    # SettingsWindow を作成
+    settings_win = SettingsWindow(root, app, settings_manager)
+    
+    # 拡張子除外を設定
+    test_exts = ".log,.bak,.tmp"
+    settings_win.exclude_extensions_var.set(test_exts)
+    
+    # Save ボタンのコールバックを直接呼び出し
+    settings_win._apply_settings(save=True)
+    
+    # 設定が保存されたか確認
+    assert settings_manager.get_setting("exclude_extensions") == test_exts
+    
+    settings_win.destroy()
+
+
+def test_settings_window_excludes_extensions_load_default(app_root):
+    """SettingsWindow が SettingsManager のデフォルト値から拡張子除外を読み込むか検証。"""
+    root, app = app_root
+    settings_manager = SettingsManager(app.event_dispatcher)
+    
+    # 事前に値を設定
+    settings_manager.set_setting("exclude_extensions", ".cache,.tmp", save=False)
+    
+    # SettingsWindow を作成 (初期化時に値が読み込まれる)
+    settings_win = SettingsWindow(root, app, settings_manager)
+    
+    # 設定が正しく読み込まれたか確認
+    assert settings_win.exclude_extensions_var.get() == ".cache,.tmp"
+    
+    settings_win.destroy()

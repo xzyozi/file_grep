@@ -29,5 +29,7 @@
     "whole_word": "Whole Word Only",
     "advanced": "Advanced",
     "exclude_dirs": "Exclude Dirs",
-    "exclude_dirs_hint": "Comma-separated (e.g. .git,node_modules)"
+    "exclude_dirs_hint": "Comma-separated (e.g. .git,node_modules)",
+    "exclude_extensions": "Exclude Extensions",
+    "exclude_extensions_hint": "Comma-separated (e.g. .log,.bak,.tmp)"
 }
