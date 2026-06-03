@@ -102,3 +102,20 @@ def test_settings_window_excludes_extensions_load_default(app_root):
     assert settings_win.exclude_extensions_var.get() == ".cache,.tmp"
     
     settings_win.destroy()
+
+
+def test_search_param_exclude_file_patterns_parsing(app_root):
+    """詳細設定の除外ファイルパターン（カンマ区切り）が正しくリストに変換されるか検証。"""
+    root, app = app_root
+    received_params = {}
+
+    def mock_on_start(directory, text, regex, ignore_case, whole_word, exclude_dirs, exclude_file_patterns):
+        received_params['exclude_file_patterns'] = exclude_file_patterns
+
+    comp = SearchParamComponent(root, app, on_start=mock_on_start, on_stop=lambda: None)
+
+    comp.exclude_file_patterns_var.set(" *.bak,*.tmp, test_*.py , ")
+    comp._on_start_btn_click()
+
+    expected = ["*.bak", "*.tmp", "test_*.py"]
+    assert received_params['exclude_file_patterns'] == expected

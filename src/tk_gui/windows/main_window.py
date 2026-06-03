@@ -119,7 +119,7 @@ class MainWindow(BaseToplevelGUI):
         self.search_params.set_values(keyword=keyword, directory=directory, regex_mode=is_regex)
         self.notebook.select(0)
 
-    def _on_start_search(self, target_dir: str, search_text: str, regex_mode: bool, ignore_case: bool, whole_word: bool, exclude_dirs: list[str]) -> None:
+    def _on_start_search(self, target_dir: str, search_text: str, regex_mode: bool, ignore_case: bool, whole_word: bool, exclude_dirs: list[str], exclude_file_patterns: list[str]) -> None:
         """検索開始処理。"""
         engine = self.engine
         if not engine:
@@ -141,6 +141,7 @@ class MainWindow(BaseToplevelGUI):
                 ignore_case=ignore_case,
                 whole_word=whole_word,
                 exclude_dirs=exclude_dirs,
+                exclude_file_patterns=exclude_file_patterns,
                 on_progress=self._update_progress,
                 on_result=self._add_to_list,
                 on_complete=self._search_complete,

@@ -32,4 +32,7 @@
     "exclude_dirs_hint": "Comma-separated (e.g. .git,node_modules)",
     "exclude_extensions": "Exclude Extensions",
     "exclude_extensions_hint": "Comma-separated (e.g. .log,.bak,.tmp)"
+    ,
+    "exclude_file_patterns": "Exclude File Patterns",
+    "exclude_file_patterns_hint": "Comma-separated (e.g. *.bak,*.tmp,test_*.py)"
 }

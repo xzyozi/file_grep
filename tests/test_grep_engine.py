@@ -241,3 +241,45 @@ class TestGrepEngine:
         assert len(target_hits) == 4
         assert any(".xlsm" in res.file_path for res in target_hits)
         assert any(".xlsx" in res.file_path for res in target_hits)
+
+    def test_exclude_extensions_parameter(self, tmp_path):
+        """exclude_exts パラメータで特定拡張子のファイルが除外されることを確認する。"""
+        engine = GrepEngine()
+        # テスト用ファイルを用意
+        file_included = tmp_path / "keep.txt"
+        file_excluded = tmp_path / "ignore.log"
+        file_included.write_text("SecretTarget present", encoding="utf-8")
+        file_excluded.write_text("SecretTarget present", encoding="utf-8")
+
+        results = []
+        engine.search(
+            target_dir=str(tmp_path),
+            search_text="SecretTarget",
+            exclude_exts=[".log"],
+            on_result=lambda r: results.append(r),
+        )
+
+        # .log ファイルは除外され、.txt ファイルは含まれる
+        assert any(r.file_path.endswith('.txt') for r in results)
+        assert not any(r.file_path.endswith('.log') for r in results)
+
+    def test_exclude_file_patterns_parameter(self, tmp_path):
+        """exclude_file_patterns パラメータでファイル名パターンが除外されることを確認する。"""
+        engine = GrepEngine()
+        # テスト用ファイルを用意
+        file_keep = tmp_path / "keep.txt"
+        file_bak = tmp_path / "old.bak"
+        file_keep.write_text("MatchMe", encoding="utf-8")
+        file_bak.write_text("MatchMe", encoding="utf-8")
+
+        results = []
+        engine.search(
+            target_dir=str(tmp_path),
+            search_text="MatchMe",
+            exclude_file_patterns=["*.bak"],
+            on_result=lambda r: results.append(r),
+        )
+
+        # *.bak は除外される
+        assert any(r.file_path.endswith('.txt') for r in results)
+        assert not any(r.file_path.endswith('.bak') for r in results)
