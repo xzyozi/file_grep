@@ -129,7 +129,7 @@ class MainWindow(BaseToplevelGUI):
         # SettingsManager から除外拡張子リストを取得してパース
         raw_exts = ""
         try:
-            raw_exts = self.app.settings_manager.get_setting("exclude_extensions", "")
+            raw_exts = self.app.settings_manager.get_setting("exclude_extensions")
         except Exception:
             raw_exts = ""
         exclude_exts = [e.strip() for e in raw_exts.split(',') if e.strip()]

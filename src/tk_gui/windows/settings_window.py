@@ -30,9 +30,9 @@ class SettingsWindow(BaseToplevelGUI):
         self.settings_manager = settings_manager
 
         # 値の保持用
-        self.theme_var = tk.StringVar(value=self.settings_manager.get_setting("theme", "light"))
-        self.language_var = tk.StringVar(value=self.settings_manager.get_setting("language", "en"))
-        self.exclude_extensions_var = tk.StringVar(value=self.settings_manager.get_setting("exclude_extensions", ""))
+        self.theme_var = tk.StringVar(value=self.settings_manager.get_setting("theme"))
+        self.language_var = tk.StringVar(value=self.settings_manager.get_setting("language"))
+        self.exclude_extensions_var = tk.StringVar(value=self.settings_manager.get_setting("exclude_extensions"))
 
         self._create_widgets()
 

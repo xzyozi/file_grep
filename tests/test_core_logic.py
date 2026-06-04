@@ -73,6 +73,20 @@ class TestSettingsManager:
         assert len(event_received) == 1
         assert event_received[0]["language"] == "ja"
 
+    def test_default_settings_fallback(self, temp_config_dir):
+        dispatcher = EventDispatcher()
+        config_file = temp_config_dir / "settings_default_fallback_test.json"
+        
+        manager = SettingsManager(dispatcher, config_name=str(config_file))
+        
+        # デフォルト値のフォールバック
+        assert manager.get_setting("theme") == "light"
+        assert manager.get_setting("language") == "en"
+        assert manager.get_setting("exclude_extensions") == ".log,.bak,.tmp"
+        
+        # 明示的に渡したデフォルト値が優先されるか
+        assert manager.get_setting("exclude_extensions", "custom") == "custom"
+
 class TestHistoryManager:
     def test_add_entry_and_limit(self, temp_config_dir):
         history_file = temp_config_dir / "history_test.json"
