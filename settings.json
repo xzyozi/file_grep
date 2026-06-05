@@ -1,4 +1,5 @@
 {
     "theme": "dark",
-    "language": "ja"
+    "language": "ja",
+    "exclude_extensions": ".png,.jpg,.jpeg,.gif,.bmp,.ico,.exe,.dll,.so,.dylib,.class,.obj,.o,.zip,.tar,.gz,.rar,.7z,.pyo,.pyc,.bak"
 }

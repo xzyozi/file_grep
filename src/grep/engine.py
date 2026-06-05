@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import os
 import re
 import threading
+import fnmatch
 from typing import Any, Callable, Dict, List, Optional
 
 from src.grep.office_parser import OfficeParser
@@ -61,6 +62,7 @@ class GrepEngine:
         whole_word: bool = False,
         exclude_dirs: Optional[List[str]] = None,
         exclude_exts: Optional[List[str]] = None,
+        exclude_file_patterns: Optional[List[str]] = None,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None
@@ -88,9 +90,10 @@ class GrepEngine:
 
         effective_dirs = self._normalize_dirs(exclude_dirs) if exclude_dirs is not None else self.exclude_dirs
         effective_exts = self._normalize_extensions(exclude_exts) if exclude_exts is not None else self.exclude_exts
+        effective_file_patterns = [p for p in (exclude_file_patterns or []) if p]
 
         hit_count = 0
-        all_files = self._collect_files(target_dir, effective_dirs, effective_exts)
+        all_files = self._collect_files(target_dir, effective_dirs, effective_exts, effective_file_patterns)
         total_files = len(all_files)
 
         # 正規表現パターンの事前コンパイル
@@ -144,12 +147,14 @@ class GrepEngine:
         self,
         target_dir: str,
         exclude_dirs: Optional[List[str]] = None,
-        exclude_exts: Optional[List[str]] = None
+        exclude_exts: Optional[List[str]] = None,
+        exclude_file_patterns: Optional[List[str]] = None
     ) -> List[str]:
         """検索対象となるファイルのリストを収集します。"""
         file_list = []
         dir_excludes = set(exclude_dirs) if exclude_dirs else set()
         ext_excludes = set(self._normalize_extensions(exclude_exts)) if exclude_exts else set()
+        patterns = [p for p in (exclude_file_patterns or [])]
 
         for root, dirs, files in os.walk(target_dir):
             if self._stop_event.is_set():
@@ -163,6 +168,19 @@ class GrepEngine:
                 ext = os.path.splitext(file)[1].lower()
                 if ext in self.BINARY_EXTENSIONS or ext in ext_excludes:
                     continue
+                # ファイル名パターンによる除外 (basename に対して fnmatch を使う)
+                if patterns:
+                    skip = False
+                    for pat in patterns:
+                        try:
+                            if fnmatch.fnmatch(file, pat):
+                                skip = True
+                                break
+                        except Exception:
+                            # パターンの解釈エラーは無視して処理を続ける
+                            continue
+                    if skip:
+                        continue
                 file_list.append(os.path.join(root, file))
         return file_list
 

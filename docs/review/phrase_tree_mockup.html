@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Tkinter Treeview Mockup</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    padding: 20px;
+  }
+  .window {
+    width: 650px;
+    background-color: #252526;
+    border: 1px solid #3c3c3c;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .window-header {
+    background-color: #323233;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-bottom: 1px solid #3c3c3c;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #e1e1e1;
+  }
+  .tree-container {
+    height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    background-color: #2d2d2d;
+    text-align: left;
+    padding: 6px 10px;
+    border: 1px solid #3c3c3c;
+    color: #aaaaaa;
+    font-weight: normal;
+  }
+  td {
+    padding: 6px 10px;
+    border: 1px solid #2d2d2d;
+    vertical-align: middle;
+  }
+  .category-row {
+    background-color: #2d2d2d;
+    cursor: pointer;
+    font-weight: bold;
+    color: #e1e1e1;
+  }
+  .category-row:hover {
+    background-color: #37373d;
+  }
+  .item-row {
+    background-color: #1e1e1e;
+  }
+  .item-row:hover {
+    background-color: #2a2d2e;
+    cursor: pointer;
+  }
+  .indent {
+    display: inline-block;
+    width: 20px;
+  }
+  .arrow {
+    display: inline-block;
+    width: 15px;
+    font-size: 10px;
+    margin-right: 5px;
+    transition: transform 0.1s ease;
+  }
+  .collapsed .arrow {
+    transform: rotate(-90deg);
+  }
+  .pattern-text {
+    font-family: 'Courier New', Courier, monospace;
+    color: #4ec9b0;
+  }
+  .hidden {
+    display: none;
+  }
+  .note {
+    font-size: 12px;
+    color: #888;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<h3>Tkinter Treeview (カテゴリ別分類表示) イメージモックアップ</h3>
+<p>以下は、定型文タブを「カテゴリ階層を持つツリー構造」に変更した際のTkinter画面のシミュレーションです。<br><strong>カテゴリ行（グレー背景）をクリック</strong>すると、そのカテゴリに所属する定型文を展開・折りたたみできます。</p>
+
+<div class="window">
+  <div class="window-header">
+    <span>定型文 / パターン (PhraseListComponent)</span>
+  </div>
+  <div class="tree-container">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 45%;">検索パターン (定型文)</th>
+          <th style="width: 55%;">パターン / 正規表現</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Category 1 -->
+        <tr class="category-row" onclick="toggleCategory(this, 'cat-python')">
+          <td><span class="arrow">▼</span>Programming (Python)</td>
+          <td></td>
+        </tr>
+        <tr class="item-row cat-python">
+          <td><span class="indent"></span>Python: Function</td>
+          <td><span class="pattern-text">^def\s+\w+\(</span></td>
+        </tr>
+        <tr class="item-row cat-python">
+          <td><span class="indent"></span>Python: Class</td>
+          <td><span class="pattern-text">^class\s+\w+[:\(]</span></td>
+        </tr>
+        <tr class="item-row cat-python">
+          <td><span class="indent"></span>Import statements</td>
+          <td><span class="pattern-text">^import\s+|^from\s+</span></td>
+        </tr>
+
+        <!-- Category 2 -->
+        <tr class="category-row" onclick="toggleCategory(this, 'cat-struct')">
+          <td><span class="arrow">▼</span>Structure / Strings</td>
+          <td></td>
+        </tr>
+        <tr class="item-row cat-struct">
+          <td><span class="indent"></span>JSON Key</td>
+          <td><span class="pattern-text">\"w+\"\s*:</span></td>
+        </tr>
+        <tr class="item-row cat-struct">
+          <td><span class="indent"></span>UUID / GUID</td>
+          <td><span class="pattern-text">[0-9a-fA-F]{8}-[0-9a-fA-F]{4}...</span></td>
+        </tr>
+
+        <!-- Category 3 -->
+        <tr class="category-row collapsed" onclick="toggleCategory(this, 'cat-network')">
+          <td><span class="arrow">▼</span>Network / Web</td>
+          <td></td>
+        </tr>
+        <tr class="item-row cat-network hidden">
+          <td><span class="indent"></span>IPv4 Address</td>
+          <td><span class="pattern-text">\b(?:(?:25[0-5]|...</span></td>
+        </tr>
+        <tr class="item-row cat-network hidden">
+          <td><span class="indent"></span>URL (HTTP/HTTPS)</td>
+          <td><span class="pattern-text">https?://[\w/:%#\$...</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="note">
+  ※実際のTkinterの <code>ttk.Treeview</code> でも、これと同様に折りたたみ可能な親子構造（インデント付き）を表現します。
+</div>
+
+<script>
+function toggleCategory(elem, catId) {
+  const rows = document.querySelectorAll('.' + catId);
+  elem.classList.toggle('collapsed');
+  rows.forEach(row => {
+    row.classList.toggle('hidden');
+  });
+}
+</script>
+</body>
+</html>
