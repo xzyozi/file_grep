@@ -55,15 +55,18 @@ class GrepResultListComponent(BaseFrameGUI):
 
     def add_result(self, result: GrepResult) -> None:
         """結果をリストに追加します。"""
-        self._results.append(result)
-        # 位置情報(location_display)があれば優先し、なければ行番号(line_number)を表示する
-        location = result.location_display if result.location_display else str(result.line_number)
-        
-        self.tree.insert('', tk.END, values=(
-            os.path.basename(result.file_path),
-            location,
-            result.line_content
-        ))
+        self.add_results([result])
+
+    def add_results(self, results: List[GrepResult]) -> None:
+        """複数の結果を一括でリストに追加します。"""
+        self._results.extend(results)
+        for result in results:
+            location = result.location_display if result.location_display else str(result.line_number)
+            self.tree.insert('', tk.END, values=(
+                os.path.basename(result.file_path),
+                location,
+                result.line_content
+            ))
 
     def clear(self) -> None:
         """リストをクリアします。"""

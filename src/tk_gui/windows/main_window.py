@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import queue
 import threading
 import tkinter as tk
 from tkinter import messagebox, ttk
@@ -29,6 +30,11 @@ class MainWindow(BaseToplevelGUI):
         self.geometry('1000x800')
 
         self.engine = self.app.engine
+
+        # スレッドセーフな検索結果キューと検索状態
+        self._result_queue = queue.Queue()
+        self._is_searching = False
+        self._poll_id = None
 
         # UI構築
         self._create_widgets()
@@ -143,6 +149,11 @@ class MainWindow(BaseToplevelGUI):
         self.status_var.set('Searching...')
         self.search_params.set_searching_state(True)
 
+        # 検索状態のリセットとポーリング開始
+        self._is_searching = True
+        self._result_queue = queue.Queue()
+        self._poll_results()
+
         t = threading.Thread(
             target=lambda: engine.search(
                 target_dir=target_dir,
@@ -167,15 +178,67 @@ class MainWindow(BaseToplevelGUI):
         if engine:
             engine.stop()
             self.status_var.set('Stopping...')
+        
+        # 停止したら即座にポーリング停止と残存フラッシュを行い状態を更新
+        self._is_searching = False
+        if self._poll_id:
+            self.after_cancel(self._poll_id)
+            self._poll_id = None
+        self._flush_remaining_results()
+        self.search_params.set_searching_state(False)
+
+    def _poll_results(self) -> None:
+        """定期的にキューから検索結果を取り出し、一括でリストに追加します。"""
+        if not self._is_searching:
+            return
+
+        max_batch = 500
+        results = []
+        for _ in range(max_batch):
+            try:
+                result = self._result_queue.get_nowait()
+                results.append(result)
+            except queue.Empty:
+                break
+
+        if results:
+            self.result_list.add_results(results)
+
+        # 100ms 間隔で再スケジュール
+        self._poll_id = self.after(100, self._poll_results)
+
+    def _flush_remaining_results(self) -> None:
+        """キューに残っている検索結果をすべてUIに追加します。"""
+        results = []
+        while True:
+            try:
+                results.append(self._result_queue.get_nowait())
+            except queue.Empty:
+                break
+        if results:
+            self.result_list.add_results(results)
 
     def _update_progress(self, current: int, total: int) -> None:
+        if not self._is_searching:
+            return
         percent = (current / total) * 100 if total > 0 else 0
         self.after(0, lambda: self.progress_var.set(percent))
         self.after(0, lambda: self.status_var.set(f'Searching: {current} / {total} files'))
 
     def _add_to_list(self, result: GrepResult) -> None:
-        self.after(0, lambda: self.result_list.add_result(result))
+        """検索スレッドから呼び出されます。結果をキューに追加するのみです。"""
+        if self._is_searching:
+            self._result_queue.put(result)
 
     def _search_complete(self, hit_count: int) -> None:
-        self.after(0, lambda: self.status_var.set(f'Complete! hits: {hit_count}'))
-        self.after(0, lambda: self.search_params.set_searching_state(False))
+        def _gui_complete():
+            self._is_searching = False
+            if self._poll_id:
+                self.after_cancel(self._poll_id)
+                self._poll_id = None
+            self._flush_remaining_results()
+            self.status_var.set(f'Complete! hits: {hit_count}')
+            self.search_params.set_searching_state(False)
+            self.progress_var.set(100)
+
+        self.after(0, _gui_complete)
