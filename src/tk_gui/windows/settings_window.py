@@ -124,18 +124,18 @@ class SettingsWindow(BaseToplevelGUI):
             # カテゴリ内の選択状態を算出
             checked_count = sum(1 for e in cat_exts if e in current_exts)
             if checked_count == len(cat_exts):
-                cat_prefix = "☑ "
+                cat_prefix = "⬛ "
             elif checked_count > 0:
-                cat_prefix = "[-] "
+                cat_prefix = "▧ "
             else:
-                cat_prefix = "☐ "
+                cat_prefix = "⬜ "
                 
             # カテゴリ（親ノード）を追加
             cat_iid = self.ext_tree.insert("", tk.END, text=f"{cat_prefix}{cat_name}", open=True, tags=(cat_name, "category"))
             
             for ext in cat_exts:
                 checked = ext in current_exts
-                prefix = "☑ " if checked else "☐ "
+                prefix = "⬛ " if checked else "⬜ "
                 self.ext_tree.insert(cat_iid, tk.END, text=f"{prefix}{ext}", tags=(ext,))
 
     def _on_tree_click(self, event: tk.Event) -> None:
@@ -204,16 +204,16 @@ class SettingsWindow(BaseToplevelGUI):
                     checked = ext in current_exts
                     if checked:
                         checked_count += 1
-                    prefix = "☑ " if checked else "☐ "
+                    prefix = "⬛ " if checked else "⬜ "
                     self.ext_tree.item(child_iid, text=f"{prefix}{ext}")
             
             # 親ノード（カテゴリ）の更新
             if checked_count == len(children):
-                cat_prefix = "☑ "
+                cat_prefix = "⬛ "
             elif checked_count > 0:
-                cat_prefix = "[-] "
+                cat_prefix = "▧ "
             else:
-                cat_prefix = "☐ "
+                cat_prefix = "⬜ "
             self.ext_tree.item(parent_iid, text=f"{cat_prefix}{cat_name}")
 
     def _apply_settings(self, save: bool = False) -> None:
