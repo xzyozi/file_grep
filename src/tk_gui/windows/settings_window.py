@@ -65,9 +65,19 @@ class SettingsWindow(BaseToplevelGUI):
         lang_combo = ttk.Combobox(lang_frame, textvariable=self.language_var, values=['en', 'ja'], state='readonly')
         lang_combo.grid(row=0, column=1, sticky=tk.EW, padx=5)
 
-        # 除外拡張子設定
+        # 下部ボタンを先に配置（つぶれ防止）
+        btn_frame = ttk.Frame(container)
+        btn_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=(10, 0))
+
+        save_btn = ttk.Button(btn_frame, text="Save", command=self._on_save)
+        save_btn.pack(side=tk.RIGHT, padx=5)
+
+        cancel_btn = ttk.Button(btn_frame, text="Cancel", command=self.destroy)
+        cancel_btn.pack(side=tk.RIGHT, padx=5)
+
+        # 除外拡張子設定（残りの領域をいっぱいに広げる）
         ext_frame = ttk.LabelFrame(container, text=_t('exclude_extensions'), padding=10)
-        ext_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+        ext_frame.pack(fill=tk.BOTH, expand=True)
 
         # 上部: テキストボックス
         entry_frame = ttk.Frame(ext_frame)
@@ -113,16 +123,6 @@ class SettingsWindow(BaseToplevelGUI):
         # 初回のチェックボタン配色適用
         self._apply_cb_theme()
 
-        # 下部ボタン
-        btn_frame = ttk.Frame(container)
-        btn_frame.pack(fill=tk.X, side=tk.BOTTOM)
-
-        save_btn = ttk.Button(btn_frame, text="Save", command=self._on_save)
-        save_btn.pack(side=tk.RIGHT, padx=5)
-
-        cancel_btn = ttk.Button(btn_frame, text="Cancel", command=self.destroy)
-        cancel_btn.pack(side=tk.RIGHT, padx=5)
-
     def _populate_ext_list(self) -> None:
         """設定項目に基づきスクロールフレーム内に本物のチェックボタンを構築します。"""
         _t = self.app.translator
@@ -160,7 +160,7 @@ class SettingsWindow(BaseToplevelGUI):
                 cat_frame,
                 text=cat_name,
                 variable=cat_var,
-                font=("Helvetica", 11, "bold"),
+                font=("TkDefaultFont", 10, "bold"),
                 cursor="hand2",
                 relief="flat",
                 command=lambda name=cat_name: self._on_category_click(name)
@@ -181,7 +181,7 @@ class SettingsWindow(BaseToplevelGUI):
                     sub_frame,
                     text=ext,
                     variable=ext_var,
-                    font=("Helvetica", 10),
+                    font=("TkDefaultFont", 9),
                     cursor="hand2",
                     relief="flat",
                     command=self._on_extension_click
