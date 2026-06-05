@@ -119,53 +119,102 @@ class SettingsWindow(BaseToplevelGUI):
         
         for cat in self.ext_categories:
             cat_name = cat["name"]
-            cat_iid = self.ext_tree.insert("", tk.END, text=cat_name, open=True)
+            cat_exts = cat["exts"]
             
-            for ext in cat["exts"]:
+            # カテゴリ内の選択状態を算出
+            checked_count = sum(1 for e in cat_exts if e in current_exts)
+            if checked_count == len(cat_exts):
+                cat_prefix = "☑ "
+            elif checked_count > 0:
+                cat_prefix = "[-] "
+            else:
+                cat_prefix = "☐ "
+                
+            # カテゴリ（親ノード）を追加
+            cat_iid = self.ext_tree.insert("", tk.END, text=f"{cat_prefix}{cat_name}", open=True, tags=(cat_name, "category"))
+            
+            for ext in cat_exts:
                 checked = ext in current_exts
-                prefix = "[x] " if checked else "[ ] "
+                prefix = "☑ " if checked else "☐ "
                 self.ext_tree.insert(cat_iid, tk.END, text=f"{prefix}{ext}", tags=(ext,))
 
     def _on_tree_click(self, event: tk.Event) -> None:
-        """ツリーの拡張子が選択された際にチェック状態を切り替えてEntryに反映します。"""
+        """ツリーの拡張子やカテゴリが選択された際にチェック状態を切り替えてEntryに反映します。"""
         selected = self.ext_tree.selection()
         if not selected:
             return
         
         item_iid = selected[0]
-        parent_iid = self.ext_tree.parent(item_iid)
-        
-        if not parent_iid:
-            return # カテゴリ名はスキップ
-        
         tags = self.ext_tree.item(item_iid, "tags")
         if not tags:
             return
-        ext = tags[0]
         
         current_exts = [e.strip().lower() for e in self.exclude_extensions_var.get().split(',') if e.strip()]
         current_exts = [('.' + e) if not e.startswith('.') else e for e in current_exts]
         
-        if ext in current_exts:
-            current_exts.remove(ext)
+        # 親ノード（カテゴリ）の場合
+        if "category" in tags:
+            cat_name = tags[0]
+            target_cat = next((c for c in self.ext_categories if c["name"] == cat_name), None)
+            if not target_cat:
+                return
+            
+            cat_exts = target_cat["exts"]
+            checked_in_cat = [e for e in cat_exts if e in current_exts]
+            
+            # 全てチェック済みなら、全てアンチェック
+            if len(checked_in_cat) == len(cat_exts):
+                for ext in cat_exts:
+                    if ext in current_exts:
+                        current_exts.remove(ext)
+            # 一部、または未チェックなら全てチェック
+            else:
+                for ext in cat_exts:
+                    if ext not in current_exts:
+                        current_exts.append(ext)
+        # 子ノード（拡張子単体）の場合
         else:
-            current_exts.append(ext)
+            ext = tags[0]
+            if ext in current_exts:
+                current_exts.remove(ext)
+            else:
+                current_exts.append(ext)
             
         self.exclude_extensions_var.set(",".join(current_exts))
 
     def _on_entry_changed(self, *args) -> None:
-        """Entryの変更に合わせてツリーの[x]/[ ]表記を同期します。"""
+        """Entryの変更に合わせてツリーの☑/☐/[-]表記を同期します。"""
         current_exts = [e.strip().lower() for e in self.exclude_extensions_var.get().split(',') if e.strip()]
         current_exts = [('.' + e) if not e.startswith('.') else e for e in current_exts]
         
         for parent_iid in self.ext_tree.get_children():
-            for child_iid in self.ext_tree.get_children(parent_iid):
+            parent_tags = self.ext_tree.item(parent_iid, "tags")
+            if not parent_tags or "category" not in parent_tags:
+                continue
+                
+            cat_name = parent_tags[0]
+            children = self.ext_tree.get_children(parent_iid)
+            checked_count = 0
+            
+            # 子ノードの更新とカウント
+            for child_iid in children:
                 tags = self.ext_tree.item(child_iid, "tags")
                 if tags:
                     ext = tags[0]
                     checked = ext in current_exts
-                    prefix = "[x] " if checked else "[ ] "
+                    if checked:
+                        checked_count += 1
+                    prefix = "☑ " if checked else "☐ "
                     self.ext_tree.item(child_iid, text=f"{prefix}{ext}")
+            
+            # 親ノード（カテゴリ）の更新
+            if checked_count == len(children):
+                cat_prefix = "☑ "
+            elif checked_count > 0:
+                cat_prefix = "[-] "
+            else:
+                cat_prefix = "☐ "
+            self.ext_tree.item(parent_iid, text=f"{cat_prefix}{cat_name}")
 
     def _apply_settings(self, save: bool = False) -> None:
         """現在の入力を設定マネージャーに反映します。"""
