@@ -34,5 +34,9 @@
     "exclude_extensions_hint": "Comma-separated (e.g. .log,.bak,.tmp)"
     ,
     "exclude_file_patterns": "Exclude File Patterns",
-    "exclude_file_patterns_hint": "Comma-separated (e.g. *.bak,*.tmp,test_*.py)"
+    "exclude_file_patterns_hint": "Comma-separated (e.g. *.bak,*.tmp,test_*.py)",
+    "ext_cat_images": "Image Files",
+    "ext_cat_executables": "Executables / Libraries",
+    "ext_cat_archives": "Archives",
+    "ext_cat_temp_logs": "Temporary Files / Logs"
 }

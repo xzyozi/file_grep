@@ -26,7 +26,7 @@ class SettingsWindow(BaseToplevelGUI):
 
         _t = self.app.translator
         self.title(_t('settings'))
-        self.geometry('500x400')
+        self.geometry('550x550') # サイズを550x550に調整
         self.settings_manager = settings_manager
 
         # 値の保持用
@@ -66,14 +66,31 @@ class SettingsWindow(BaseToplevelGUI):
 
         # 除外拡張子設定
         ext_frame = ttk.LabelFrame(container, text=_t('exclude_extensions'), padding=10)
-        ext_frame.pack(fill=tk.X, pady=(0, 20))
+        ext_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
 
-        ttk.Label(ext_frame, text=_t('exclude_extensions') + ":").grid(row=0, column=0, sticky=tk.W, padx=5)
-        ext_entry = ttk.Entry(ext_frame, textvariable=self.exclude_extensions_var, width=40)
-        ext_entry.grid(row=0, column=1, sticky=tk.EW, padx=5)
+        # 上部: テキストボックス
+        entry_frame = ttk.Frame(ext_frame)
+        entry_frame.pack(fill=tk.X, pady=(0, 5))
+        ttk.Label(entry_frame, text=_t('exclude_extensions') + ":").pack(side=tk.LEFT, padx=5)
+        ext_entry = ttk.Entry(entry_frame, textvariable=self.exclude_extensions_var)
+        ext_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
 
-        hint_label = ttk.Label(ext_frame, text=_t('exclude_extensions_hint'), font=("TkDefaultFont", 8), foreground="gray")
-        hint_label.grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=5, pady=(5, 0))
+        # 中央: カテゴリ別ツリー表示
+        self.ext_tree = ttk.Treeview(ext_frame, show='tree', height=6)
+        self.ext_vsb = ttk.Scrollbar(ext_frame, orient='vertical', command=self.ext_tree.yview)
+        self.ext_tree.configure(yscrollcommand=self.ext_vsb.set)
+        
+        self.ext_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        self.ext_vsb.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self._populate_ext_tree()
+
+        # ダブルクリック・Enterキーで選択状態をトグル
+        self.ext_tree.bind('<Double-1>', self._on_tree_click)
+        self.ext_tree.bind('<Return>', self._on_tree_click)
+
+        # エントリー値の変更を監視してツリーのチェックマークと同期
+        self.exclude_extensions_var.trace_add("write", self._on_entry_changed)
 
         # 下部ボタン
         btn_frame = ttk.Frame(container)
@@ -84,6 +101,71 @@ class SettingsWindow(BaseToplevelGUI):
 
         cancel_btn = ttk.Button(btn_frame, text="Cancel", command=self.destroy)
         cancel_btn.pack(side=tk.RIGHT, padx=5)
+
+    def _populate_ext_tree(self) -> None:
+        """設定項目に基づきツリービューを初期構築します。"""
+        _t = self.app.translator
+        self.ext_categories = [
+            {"name": _t("ext_cat_images"), "exts": [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico"]},
+            {"name": _t("ext_cat_executables"), "exts": [".exe", ".dll", ".so", ".dylib", ".class", ".obj", ".o"]},
+            {"name": _t("ext_cat_archives"), "exts": [".zip", ".tar", ".gz", ".rar", ".7z"]},
+            {"name": _t("ext_cat_temp_logs"), "exts": [".log", ".bak", ".tmp", ".pyc", ".pyo"]}
+        ]
+        
+        current_exts = [e.strip().lower() for e in self.exclude_extensions_var.get().split(',') if e.strip()]
+        current_exts = [('.' + e) if not e.startswith('.') else e for e in current_exts]
+        
+        self.ext_tree.delete(*self.ext_tree.get_children())
+        
+        for cat in self.ext_categories:
+            cat_name = cat["name"]
+            cat_iid = self.ext_tree.insert("", tk.END, text=cat_name, open=True)
+            
+            for ext in cat["exts"]:
+                checked = ext in current_exts
+                prefix = "[x] " if checked else "[ ] "
+                self.ext_tree.insert(cat_iid, tk.END, text=f"{prefix}{ext}", tags=(ext,))
+
+    def _on_tree_click(self, event: tk.Event) -> None:
+        """ツリーの拡張子が選択された際にチェック状態を切り替えてEntryに反映します。"""
+        selected = self.ext_tree.selection()
+        if not selected:
+            return
+        
+        item_iid = selected[0]
+        parent_iid = self.ext_tree.parent(item_iid)
+        
+        if not parent_iid:
+            return # カテゴリ名はスキップ
+        
+        tags = self.ext_tree.item(item_iid, "tags")
+        if not tags:
+            return
+        ext = tags[0]
+        
+        current_exts = [e.strip().lower() for e in self.exclude_extensions_var.get().split(',') if e.strip()]
+        current_exts = [('.' + e) if not e.startswith('.') else e for e in current_exts]
+        
+        if ext in current_exts:
+            current_exts.remove(ext)
+        else:
+            current_exts.append(ext)
+            
+        self.exclude_extensions_var.set(",".join(current_exts))
+
+    def _on_entry_changed(self, *args) -> None:
+        """Entryの変更に合わせてツリーの[x]/[ ]表記を同期します。"""
+        current_exts = [e.strip().lower() for e in self.exclude_extensions_var.get().split(',') if e.strip()]
+        current_exts = [('.' + e) if not e.startswith('.') else e for e in current_exts]
+        
+        for parent_iid in self.ext_tree.get_children():
+            for child_iid in self.ext_tree.get_children(parent_iid):
+                tags = self.ext_tree.item(child_iid, "tags")
+                if tags:
+                    ext = tags[0]
+                    checked = ext in current_exts
+                    prefix = "[x] " if checked else "[ ] "
+                    self.ext_tree.item(child_iid, text=f"{prefix}{ext}")
 
     def _apply_settings(self, save: bool = False) -> None:
         """現在の入力を設定マネージャーに反映します。"""
