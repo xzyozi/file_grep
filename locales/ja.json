@@ -38,5 +38,7 @@
     "ext_cat_images": "画像ファイル",
     "ext_cat_executables": "実行ファイル / ライブラリ",
     "ext_cat_archives": "アーカイブ",
-    "ext_cat_temp_logs": "一時ファイル / ログ"
+    "ext_cat_temp_logs": "一時ファイル / ログ",
+    "save": "保存",
+    "cancel": "キャンセル"
 }

@@ -43,12 +43,13 @@ class SettingsWindow(BaseToplevelGUI):
         container.pack(fill=tk.BOTH, expand=True)
 
         # 外観設定
-        appearance_frame = ttk.LabelFrame(container, text=_t('theme'), padding=10)
-        appearance_frame.pack(fill=tk.X, pady=(0, 10))
+        self.appearance_frame = ttk.LabelFrame(container, text=_t('theme'), padding=10)
+        self.appearance_frame.pack(fill=tk.X, pady=(0, 10))
 
-        ttk.Label(appearance_frame, text=_t('theme') + ":").grid(row=0, column=0, sticky=tk.W, padx=5)
+        self.theme_label = ttk.Label(self.appearance_frame, text=_t('theme') + ":")
+        self.theme_label.grid(row=0, column=0, sticky=tk.W, padx=5)
         theme_combo = ttk.Combobox(
-            appearance_frame,
+            self.appearance_frame,
             textvariable=self.theme_var,
             values=['light', 'dark'],
             state='readonly'
@@ -58,37 +59,41 @@ class SettingsWindow(BaseToplevelGUI):
         theme_combo.bind('<<ComboboxSelected>>', lambda e: (self._apply_settings(save=False), self._apply_cb_theme()))
 
         # 言語設定
-        lang_frame = ttk.LabelFrame(container, text=_t('language'), padding=10)
-        lang_frame.pack(fill=tk.X, pady=(0, 10))
+        self.lang_frame = ttk.LabelFrame(container, text=_t('language'), padding=10)
+        self.lang_frame.pack(fill=tk.X, pady=(0, 10))
 
-        ttk.Label(lang_frame, text=_t('language') + ":").grid(row=0, column=0, sticky=tk.W, padx=5)
-        lang_combo = ttk.Combobox(lang_frame, textvariable=self.language_var, values=['en', 'ja'], state='readonly')
+        self.lang_label = ttk.Label(self.lang_frame, text=_t('language') + ":")
+        self.lang_label.grid(row=0, column=0, sticky=tk.W, padx=5)
+        lang_combo = ttk.Combobox(self.lang_frame, textvariable=self.language_var, values=['en', 'ja'], state='readonly')
         lang_combo.grid(row=0, column=1, sticky=tk.EW, padx=5)
+        # 言語選択時、設定の適用とUIのリアルタイム再翻訳を行う
+        lang_combo.bind('<<ComboboxSelected>>', lambda e: (self._apply_settings(save=False), self._on_language_changed()))
 
         # 下部ボタンを先に配置（つぶれ防止）
         btn_frame = ttk.Frame(container)
         btn_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=(10, 0))
 
-        save_btn = ttk.Button(btn_frame, text="Save", command=self._on_save)
-        save_btn.pack(side=tk.RIGHT, padx=5)
+        self.save_btn = ttk.Button(btn_frame, text=_t('save'), command=self._on_save)
+        self.save_btn.pack(side=tk.RIGHT, padx=5)
 
-        cancel_btn = ttk.Button(btn_frame, text="Cancel", command=self.destroy)
-        cancel_btn.pack(side=tk.RIGHT, padx=5)
+        self.cancel_btn = ttk.Button(btn_frame, text=_t('cancel'), command=self.destroy)
+        self.cancel_btn.pack(side=tk.RIGHT, padx=5)
 
         # 除外拡張子設定（残りの領域をいっぱいに広げる）
-        ext_frame = ttk.LabelFrame(container, text=_t('exclude_extensions'), padding=10)
-        ext_frame.pack(fill=tk.BOTH, expand=True)
+        self.ext_frame = ttk.LabelFrame(container, text=_t('exclude_extensions'), padding=10)
+        self.ext_frame.pack(fill=tk.BOTH, expand=True)
 
         # 上部: テキストボックス
-        entry_frame = ttk.Frame(ext_frame)
+        entry_frame = ttk.Frame(self.ext_frame)
         entry_frame.pack(fill=tk.X, pady=(0, 5))
-        ttk.Label(entry_frame, text=_t('exclude_extensions') + ":").pack(side=tk.LEFT, padx=5)
+        self.ext_label = ttk.Label(entry_frame, text=_t('exclude_extensions') + ":")
+        self.ext_label.pack(side=tk.LEFT, padx=5)
         ext_entry = ttk.Entry(entry_frame, textvariable=self.exclude_extensions_var)
         ext_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
 
         # 中央: スクロール可能なチェックボックスリスト (Canvas & Scrollbar)
-        self.canvas = tk.Canvas(ext_frame, borderwidth=0, highlightthickness=0)
-        self.scrollbar = ttk.Scrollbar(ext_frame, orient="vertical", command=self.canvas.yview)
+        self.canvas = tk.Canvas(self.ext_frame, borderwidth=0, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.ext_frame, orient="vertical", command=self.canvas.yview)
         
         self.scrollable_frame = tk.Frame(self.canvas)
         
@@ -281,6 +286,32 @@ class SettingsWindow(BaseToplevelGUI):
                 activebackground=c["active_bg"],
                 activeforeground=c["active_fg"]
             )
+
+    def _on_language_changed(self) -> None:
+        """言語の切り替えを検知した際、設定画面全体の表示テキストを即座に更新します。"""
+        _t = self.app.translator
+        
+        # タイトル
+        self.title(_t('settings'))
+        
+        # 各フレームとラベル
+        self.appearance_frame.config(text=_t('theme'))
+        self.theme_label.config(text=_t('theme') + ":")
+        
+        self.lang_frame.config(text=_t('language'))
+        self.lang_label.config(text=_t('language') + ":")
+        
+        self.ext_frame.config(text=_t('exclude_extensions'))
+        self.ext_label.config(text=_t('exclude_extensions') + ":")
+        
+        self.save_btn.config(text=_t('save'))
+        self.cancel_btn.config(text=_t('cancel'))
+        
+        # チェックボックスリストの再構築 (カテゴリ名の翻訳が更新されます)
+        self._populate_ext_list()
+        
+        # テーマ配色も再適用
+        self._apply_cb_theme()
 
     def _apply_settings(self, save: bool = False) -> None:
         """現在の入力を設定マネージャーに反映します。"""

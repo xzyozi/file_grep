@@ -38,5 +38,7 @@
     "ext_cat_images": "Image Files",
     "ext_cat_executables": "Executables / Libraries",
     "ext_cat_archives": "Archives",
-    "ext_cat_temp_logs": "Temporary Files / Logs"
+    "ext_cat_temp_logs": "Temporary Files / Logs",
+    "save": "Save",
+    "cancel": "Cancel"
 }
