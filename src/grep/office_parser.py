@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import logging
+from typing import Any, Callable, Dict, List, Optional
 import xml.etree.ElementTree as ET
 import zipfile
-from typing import Any, Dict, List, Optional, Tuple
 
-logger = logging.getLogger(__name__)
 
 class OfficeParser:
     """
@@ -44,21 +42,29 @@ class OfficeParser:
         return texts
 
     @classmethod
-    def get_docx_content(cls, file_path: str) -> List[Dict[str, Any]]:
+    def get_docx_content(
+        cls,
+        file_path: str,
+        on_error: Optional[Callable[[str, Exception], None]] = None
+    ) -> List[Dict[str, Any]]:
         """Wordファイルから本文・ヘッダー・フッターを抽出します。"""
         results = []
         try:
             with zipfile.ZipFile(file_path, 'r') as zp:
                 # 走査対象のXMLリストを取得 (本文、ヘッダー、フッター)
                 xml_files = [n for n in zp.namelist() if n.startswith('word/') and n.endswith('.xml')]
-                
+
                 for xml_name in xml_files:
                     # 分類ラベルの作成
                     label = "Body"
-                    if "header" in xml_name: label = "Header"
-                    elif "footer" in xml_name: label = "Footer"
-                    elif xml_name == "word/document.xml": label = "Body"
-                    else: continue # その他(settings等)はスキップ
+                    if "header" in xml_name:
+                        label = "Header"
+                    elif "footer" in xml_name:
+                        label = "Footer"
+                    elif xml_name == "word/document.xml":
+                        label = "Body"
+                    else:
+                        continue # その他(settings等)はスキップ
 
                     with zp.open(xml_name) as f:
                         lines = cls._get_text_from_xml(f)
@@ -69,11 +75,16 @@ class OfficeParser:
                                 "metadata": {"xml": xml_name, "type": label}
                             })
         except Exception as e:
-            logger.error(f"Error parsing DOCX {file_path}: {e}")
+            if on_error:
+                on_error(f"Error parsing DOCX {file_path}", e)
         return results
 
     @classmethod
-    def get_xlsx_content(cls, file_path: str) -> List[Dict[str, Any]]:
+    def get_xlsx_content(
+        cls,
+        file_path: str,
+        on_error: Optional[Callable[[str, Exception], None]] = None
+    ) -> List[Dict[str, Any]]:
         """Excelファイルからシート名・セル番地付きでテキストを抽出します。"""
         results = []
         try:
@@ -113,12 +124,12 @@ class OfficeParser:
                 # 4. 各ワークシートのパース
                 tag_c = f"{{{cls.NAMESPACE['s']}}}c"
                 tag_v = f"{{{cls.NAMESPACE['s']}}}v"
-                
+
                 for r_id, sheet_name in sheet_id_to_name.items():
                     xml_path = rel_to_path.get(r_id)
                     if not xml_path or xml_path not in zp.namelist():
                         continue
-                    
+
                     with zp.open(xml_path) as f:
                         context = ET.iterparse(f, events=('start', 'end'))
                         current_cell_ref = ""
@@ -128,7 +139,7 @@ class OfficeParser:
                             if event == 'start' and elem.tag == tag_c:
                                 current_cell_ref = elem.get('r', '') # "A1" など
                                 is_shared = (elem.get('t') == 's') # sharedStringか
-                            
+
                             elif event == 'end' and elem.tag == tag_v:
                                 value = elem.text
                                 if value is not None:
@@ -138,7 +149,7 @@ class OfficeParser:
                                         display_text = shared_strings[idx] if 0 <= idx < len(shared_strings) else ""
                                     else:
                                         display_text = value # 数値等そのまま
-                                    
+
                                     if display_text:
                                         results.append({
                                             "text": display_text,
@@ -149,15 +160,20 @@ class OfficeParser:
                                 elem.clear()
 
         except Exception as e:
-            logger.error(f"Error parsing XLSX {file_path}: {e}")
+            if on_error:
+                on_error(f"Error parsing XLSX {file_path}", e)
         return results
 
     @classmethod
-    def extract_content(cls, file_path: str) -> List[Dict[str, Any]]:
+    def extract_content(
+        cls,
+        file_path: str,
+        on_error: Optional[Callable[[str, Exception], None]] = None
+    ) -> List[Dict[str, Any]]:
         """拡張子に応じてコンテンツを抽出します。"""
         ext = file_path.lower()
         if ext.endswith(('.docx', '.docm')):
-            return cls.get_docx_content(file_path)
+            return cls.get_docx_content(file_path, on_error)
         elif ext.endswith(('.xlsx', '.xlsm')):
-            return cls.get_xlsx_content(file_path)
+            return cls.get_xlsx_content(file_path, on_error)
         return []

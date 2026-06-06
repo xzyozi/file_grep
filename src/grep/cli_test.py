@@ -1,8 +1,7 @@
 import argparse
 import os
 import sys
-
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from src.grep.engine import GrepResult

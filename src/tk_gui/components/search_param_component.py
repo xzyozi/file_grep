@@ -20,7 +20,7 @@ class SearchParamComponent(BaseFrameGUI):
         self,
         master: tk.Misc,
         app_instance: BaseApplication,
-        on_start: Callable[[str, str, bool, bool, bool, list[str]], None],
+        on_start: Callable[[str, str, bool, bool, bool, list[str], list[str]], None],
         on_stop: Callable[[], None]
     ) -> None:
         super().__init__(master, app_instance)
@@ -35,6 +35,8 @@ class SearchParamComponent(BaseFrameGUI):
         self.whole_word_var = tk.BooleanVar(value=False)
         # デフォルトで除外するディレクトリ
         self.exclude_dirs_var = tk.StringVar(value=".git,node_modules,__pycache__")
+        # 除外するファイル名パターン（カンマ区切り、例: *.bak,*.tmp,test_*.py）
+        self.exclude_file_patterns_var = tk.StringVar(value="")
         self.show_advanced = False
 
         self._create_widgets()
@@ -96,6 +98,16 @@ class SearchParamComponent(BaseFrameGUI):
         self.ex_dir_hint_label = ttk.Label(self.advanced_frame, font=("", 8), foreground="gray")
         self.ex_dir_hint_label.pack(side=tk.LEFT, padx=5)
 
+        # 除外ファイル名パターン入力
+        self.ex_file_label = ttk.Label(self.advanced_frame)
+        self.ex_file_label.pack(side=tk.LEFT, padx=5)
+
+        self.ex_file_entry = ttk.Entry(self.advanced_frame, textvariable=self.exclude_file_patterns_var, width=40)
+        self.ex_file_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+
+        self.ex_file_hint_label = ttk.Label(self.advanced_frame, font=("", 8), foreground="gray")
+        self.ex_file_hint_label.pack(side=tk.LEFT, padx=5)
+
         self.grid_columnconfigure(1, weight=1)
 
         # 初期ラベル設定
@@ -114,6 +126,8 @@ class SearchParamComponent(BaseFrameGUI):
         self.advanced_btn.config(text=_t('advanced'))
         self.ex_dir_label.config(text=_t('exclude_dirs') + ":")
         self.ex_dir_hint_label.config(text=_t('exclude_dirs_hint'))
+        self.ex_file_label.config(text=_t('exclude_file_patterns') + ":")
+        self.ex_file_hint_label.config(text=_t('exclude_file_patterns_hint'))
 
     def _browse_directory(self) -> None:
         path = filedialog.askdirectory(initialdir=self.dir_var.get())
@@ -123,14 +137,16 @@ class SearchParamComponent(BaseFrameGUI):
     def _on_start_btn_click(self) -> None:
         # カンマ区切りの文字列をリストに変換 (空文字は除外)
         exclude_dirs = [d.strip() for d in self.exclude_dirs_var.get().split(',') if d.strip()]
-        
+        exclude_file_patterns = [p.strip() for p in self.exclude_file_patterns_var.get().split(',') if p.strip()]
+
         self.on_start(
             self.dir_var.get(),
             self.keyword_var.get(),
             self.regex_var.get(),
             self.ignore_case_var.get(),
             self.whole_word_var.get(),
-            exclude_dirs
+            exclude_dirs,
+            exclude_file_patterns,
         )
 
     def _toggle_advanced(self) -> None:
@@ -172,3 +188,4 @@ class SearchParamComponent(BaseFrameGUI):
             self.whole_word_var.set(whole_word)
         if exclude_dirs is not None:
             self.exclude_dirs_var.set(",".join(exclude_dirs))
+        # exclude file patterns は未定義時は変更しない

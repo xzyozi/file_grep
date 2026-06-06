@@ -17,6 +17,12 @@ class SettingsManager:
     常にプロジェクトルートを基準とした絶対パスでファイルを読み書きします。
     """
 
+    DEFAULT_SETTINGS = {
+        "theme": "light",
+        "language": "en",
+        "exclude_extensions": ".log,.bak,.tmp"
+    }
+
     def __init__(self, event_dispatcher: EventDispatcher, config_name: str = "settings.json") -> None:
         self.event_dispatcher = event_dispatcher
 
@@ -43,7 +49,11 @@ class SettingsManager:
 
     def get_setting(self, key: str, default: Any = None) -> Any:
         """設定項目を取得します。"""
-        return self.settings.get(key, default)
+        if key in self.settings:
+            return self.settings[key]
+        if default is not None:
+            return default
+        return self.DEFAULT_SETTINGS.get(key)
 
     def set_setting(self, key: str, value: Any, save: bool = True) -> None:
         """設定値を更新し、永続化します。"""
