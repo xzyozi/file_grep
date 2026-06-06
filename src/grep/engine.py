@@ -24,30 +24,18 @@ class GrepEngine:
     マルチスレッドによる並列スキャンと、効率的な文字コード推測をサポートします。
     """
 
-    # 走査から完全に除外するバイナリ拡張子
-    # ※ Officeファイル(.docx, .xlsx)は OfficeParser で別途処理するため、ここには含めない
-    BINARY_EXTENSIONS = {
-        '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.pyc', '.pyo',
-        '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.pdf',
-        '.zip', '.tar', '.gz', '.rar', '.7z', '.class', '.obj', '.o'
-    }
-
-    # デフォルトで除外するディレクトリ名
-    DEFAULT_EXCLUDE_DIRS = ['.git', 'node_modules', '__pycache__']
-
-    # 試行する文字コード（テキストファイル用）
-    ENCODINGS = ['utf-8', 'cp932', 'shift_jis', 'euc_jp', 'iso-2022-jp', 'utf-16']
-
     def __init__(
         self,
         max_threads: int = 4,
         exclude_dirs: Optional[List[str]] = None,
         exclude_exts: Optional[List[str]] = None,
+        encodings: Optional[List[str]] = None,
     ):
         self.max_threads = max_threads
         self._stop_event = threading.Event()
-        self.exclude_dirs = self._normalize_dirs(exclude_dirs) if exclude_dirs is not None else list(self.DEFAULT_EXCLUDE_DIRS)
-        self.exclude_exts = self._normalize_extensions(exclude_exts) if exclude_exts is not None else []
+        self.exclude_dirs = self._normalize_dirs(exclude_dirs)
+        self.exclude_exts = self._normalize_extensions(exclude_exts)
+        self.encodings = encodings if encodings is not None else ['utf-8', 'cp932', 'shift_jis', 'euc_jp', 'iso-2022-jp', 'utf-16']
 
     def stop(self) -> None:
         """検索を中断します。スレッドセーフにイベントを発行します。"""
@@ -169,7 +157,7 @@ class GrepEngine:
 
             for file in files:
                 ext = os.path.splitext(file)[1].lower()
-                if ext in self.BINARY_EXTENSIONS or ext in ext_excludes:
+                if ext in ext_excludes:
                     continue
                 # ファイル名パターンによる除外 (basename に対して fnmatch を使う)
                 if patterns:
@@ -232,7 +220,7 @@ class GrepEngine:
                     return [] # バイナリと判定してスキップ
 
             # 2. エンコーディング試行とストリーム検索
-            for enc in self.ENCODINGS:
+            for enc in self.encodings:
                 try:
                     with open(file_path, 'r', encoding=enc, errors='strict') as f:
                         for i, line in enumerate(f, 1):
