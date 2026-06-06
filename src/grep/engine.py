@@ -195,7 +195,7 @@ class GrepEngine:
 
         # Officeファイルの処理
         if ext in ('.docx', '.docm', '.xlsx', '.xlsm'):
-            office_data = OfficeParser.extract_content(file_path)
+            office_data = OfficeParser.extract_content(file_path, on_error)
             if office_data:
                 for item in office_data:
                     line = item.get("text", "")
