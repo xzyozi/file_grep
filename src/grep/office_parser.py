@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from typing import Any, Callable, Dict, List, Optional
 import xml.etree.ElementTree as ET
 import zipfile
-from typing import Any, Callable, Dict, List, Optional
+
 
 class OfficeParser:
     """
@@ -48,7 +49,7 @@ class OfficeParser:
             with zipfile.ZipFile(file_path, 'r') as zp:
                 # 走査対象のXMLリストを取得 (本文、ヘッダー、フッター)
                 xml_files = [n for n in zp.namelist() if n.startswith('word/') and n.endswith('.xml')]
-                
+
                 for xml_name in xml_files:
                     # 分類ラベルの作成
                     label = "Body"
@@ -115,12 +116,12 @@ class OfficeParser:
                 # 4. 各ワークシートのパース
                 tag_c = f"{{{cls.NAMESPACE['s']}}}c"
                 tag_v = f"{{{cls.NAMESPACE['s']}}}v"
-                
+
                 for r_id, sheet_name in sheet_id_to_name.items():
                     xml_path = rel_to_path.get(r_id)
                     if not xml_path or xml_path not in zp.namelist():
                         continue
-                    
+
                     with zp.open(xml_path) as f:
                         context = ET.iterparse(f, events=('start', 'end'))
                         current_cell_ref = ""
@@ -130,7 +131,7 @@ class OfficeParser:
                             if event == 'start' and elem.tag == tag_c:
                                 current_cell_ref = elem.get('r', '') # "A1" など
                                 is_shared = (elem.get('t') == 's') # sharedStringか
-                            
+
                             elif event == 'end' and elem.tag == tag_v:
                                 value = elem.text
                                 if value is not None:
@@ -140,7 +141,7 @@ class OfficeParser:
                                         display_text = shared_strings[idx] if 0 <= idx < len(shared_strings) else ""
                                     else:
                                         display_text = value # 数値等そのまま
-                                    
+
                                     if display_text:
                                         results.append({
                                             "text": display_text,

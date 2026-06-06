@@ -183,7 +183,7 @@ class MainWindow(BaseToplevelGUI):
         if engine:
             engine.stop()
             self.status_var.set('Stopping...')
-        
+
         # 停止したら即座にポーリング停止と残存フラッシュを行い状態を更新
         self._is_searching = False
         if self._poll_id:

@@ -1,9 +1,9 @@
 import concurrent.futures
 from dataclasses import dataclass, field
+import fnmatch
 import os
 import re
 import threading
-import fnmatch
 from typing import Any, Callable, Dict, List, Optional
 
 from src.grep.office_parser import OfficeParser
@@ -201,7 +201,7 @@ class GrepEngine:
                     line = item.get("text", "")
                     location = item.get("location", "Unknown")
                     meta = item.get("metadata", {})
-                    
+
                     if self._check_hit(line, search_text, regex_mode, ignore_case, pattern):
                         results.append(GrepResult(
                             file_path=file_path,
@@ -261,8 +261,8 @@ class GrepEngine:
         """指定された行が検索テキストにマッチするか判定します。"""
         if regex_mode and pattern:
             return bool(pattern.search(line))
-        
+
         if ignore_case:
             return search_text.lower() in line.lower()
-        
+
         return search_text in line
