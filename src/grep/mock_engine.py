@@ -29,6 +29,7 @@ class MockGrepEngine:
         whole_word: bool = False,
         exclude_dirs: Optional[List[str]] = None,
         exclude_exts: Optional[List[str]] = None,
+        exclude_file_patterns: Optional[List[str]] = None,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None
