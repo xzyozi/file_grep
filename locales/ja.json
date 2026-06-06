@@ -29,5 +29,16 @@
     "whole_word": "単語単位で検索",
     "advanced": "詳細設定",
     "exclude_dirs": "除外ディレクトリ",
-    "exclude_dirs_hint": "カンマ区切りで入力 (例: .git,node_modules)"
+    "exclude_dirs_hint": "カンマ区切りで入力 (例: .git,node_modules)",
+    "exclude_extensions": "除外拡張子",
+    "exclude_extensions_hint": "カンマ区切りで入力 (例: .log,.bak,.tmp)"
+    ,
+    "exclude_file_patterns": "除外ファイルパターン",
+    "exclude_file_patterns_hint": "カンマ区切りで入力 (例: *.bak,*.tmp,test_*.py)",
+    "ext_cat_images": "画像ファイル",
+    "ext_cat_executables": "実行ファイル / ライブラリ",
+    "ext_cat_archives": "アーカイブ",
+    "ext_cat_temp_logs": "一時ファイル / ログ",
+    "save": "保存",
+    "cancel": "キャンセル"
 }

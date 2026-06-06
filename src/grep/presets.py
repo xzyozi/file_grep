@@ -44,7 +44,7 @@ class SearchPresets:
     def get_by_label(cls, label: str) -> Tuple[str, bool]:
         """ラベル名から検索パターンを取得します。"""
         cls._load_presets_if_needed()
-        for l, p, r in (cls._presets or []):
-            if l == label:
-                return p, r
+        for lbl, pat, is_reg in (cls._presets or []):
+            if lbl == label:
+                return pat, is_reg
         return "", False
