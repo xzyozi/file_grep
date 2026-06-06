@@ -8,14 +8,13 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Any, Dict
 
 from src.tk_gui.base.base_toplevel_gui import BaseToplevelGUI
-
-logger = logging.getLogger(__name__)
-
 from src.tk_gui.components.grep_result_list_component import GrepResultListComponent
 from src.tk_gui.components.history_list_component import HistoryListComponent
 from src.tk_gui.components.phrase_list_component import PhraseListComponent
 from src.tk_gui.components.search_param_component import SearchParamComponent
 from src.tk_gui.windows.settings_window import SettingsWindow
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from src.core.base_application import BaseApplication
@@ -112,7 +111,9 @@ class MainWindow(BaseToplevelGUI):
         self.phrase_list = PhraseListComponent(
             self.notebook,
             self.app,
-            on_select=lambda label, pattern, is_regex: self.search_params.set_values(keyword=pattern, regex_mode=is_regex)
+            on_select=lambda label, pattern, is_regex: self.search_params.set_values(
+                keyword=pattern, regex_mode=is_regex
+            )
         )
         self.notebook.add(self.phrase_list, text=_t('snippets'))
 
@@ -129,7 +130,16 @@ class MainWindow(BaseToplevelGUI):
         self.search_params.set_values(keyword=keyword, directory=directory, regex_mode=is_regex)
         self.notebook.select(0)
 
-    def _on_start_search(self, target_dir: str, search_text: str, regex_mode: bool, ignore_case: bool, whole_word: bool, exclude_dirs: list[str], exclude_file_patterns: list[str]) -> None:
+    def _on_start_search(
+        self,
+        target_dir: str,
+        search_text: str,
+        regex_mode: bool,
+        ignore_case: bool,
+        whole_word: bool,
+        exclude_dirs: list[str],
+        exclude_file_patterns: list[str]
+    ) -> None:
         """検索開始処理。"""
         engine = self.engine
         if not engine:

@@ -42,7 +42,11 @@ class OfficeParser:
         return texts
 
     @classmethod
-    def get_docx_content(cls, file_path: str, on_error: Optional[Callable[[str, Exception], None]] = None) -> List[Dict[str, Any]]:
+    def get_docx_content(
+        cls,
+        file_path: str,
+        on_error: Optional[Callable[[str, Exception], None]] = None
+    ) -> List[Dict[str, Any]]:
         """Wordファイルから本文・ヘッダー・フッターを抽出します。"""
         results = []
         try:
@@ -76,7 +80,11 @@ class OfficeParser:
         return results
 
     @classmethod
-    def get_xlsx_content(cls, file_path: str, on_error: Optional[Callable[[str, Exception], None]] = None) -> List[Dict[str, Any]]:
+    def get_xlsx_content(
+        cls,
+        file_path: str,
+        on_error: Optional[Callable[[str, Exception], None]] = None
+    ) -> List[Dict[str, Any]]:
         """Excelファイルからシート名・セル番地付きでテキストを抽出します。"""
         results = []
         try:
@@ -157,7 +165,11 @@ class OfficeParser:
         return results
 
     @classmethod
-    def extract_content(cls, file_path: str, on_error: Optional[Callable[[str, Exception], None]] = None) -> List[Dict[str, Any]]:
+    def extract_content(
+        cls,
+        file_path: str,
+        on_error: Optional[Callable[[str, Exception], None]] = None
+    ) -> List[Dict[str, Any]]:
         """拡張子に応じてコンテンツを抽出します。"""
         ext = file_path.lower()
         if ext.endswith(('.docx', '.docm')):

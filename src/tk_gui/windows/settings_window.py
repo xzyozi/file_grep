@@ -64,10 +64,18 @@ class SettingsWindow(BaseToplevelGUI):
 
         self.lang_label = ttk.Label(self.lang_frame, text=_t('language') + ":")
         self.lang_label.grid(row=0, column=0, sticky=tk.W, padx=5)
-        lang_combo = ttk.Combobox(self.lang_frame, textvariable=self.language_var, values=['en', 'ja'], state='readonly')
+        lang_combo = ttk.Combobox(
+            self.lang_frame,
+            textvariable=self.language_var,
+            values=['en', 'ja'],
+            state='readonly'
+        )
         lang_combo.grid(row=0, column=1, sticky=tk.EW, padx=5)
         # 言語選択時、設定の適用とUIのリアルタイム再翻訳を行う
-        lang_combo.bind('<<ComboboxSelected>>', lambda e: (self._apply_settings(save=False), self._on_language_changed()))
+        lang_combo.bind(
+            '<<ComboboxSelected>>',
+            lambda e: (self._apply_settings(save=False), self._on_language_changed())
+        )
 
         # 下部ボタンを先に配置（つぶれ防止）
         btn_frame = ttk.Frame(container)
