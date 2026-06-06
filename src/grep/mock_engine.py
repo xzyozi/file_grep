@@ -29,9 +29,11 @@ class MockGrepEngine:
         whole_word: bool = False,
         exclude_dirs: Optional[List[str]] = None,
         exclude_exts: Optional[List[str]] = None,
+        exclude_file_patterns: Optional[List[str]] = None,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
-        on_complete: Optional[Callable[[int], None]] = None
+        on_complete: Optional[Callable[[int], None]] = None,
+        on_error: Optional[Callable[[str, Exception], None]] = None
     ) -> int:
         """ダミーの結果を生成して返します（ウェイトを挟む）。"""
         self._stop_event.clear()
