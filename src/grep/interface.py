@@ -22,7 +22,8 @@ class GrepEngineProtocol(Protocol):
         exclude_file_patterns: Optional[List[str]] = None,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
-        on_complete: Optional[Callable[[int], None]] = None
+        on_complete: Optional[Callable[[int], None]] = None,
+        on_error: Optional[Callable[[str, Exception], None]] = None
     ) -> int:
         ...
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import queue
 import threading
 import tkinter as tk
@@ -7,6 +8,9 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Any, Dict
 
 from src.tk_gui.base.base_toplevel_gui import BaseToplevelGUI
+
+logger = logging.getLogger(__name__)
+
 from src.tk_gui.components.grep_result_list_component import GrepResultListComponent
 from src.tk_gui.components.history_list_component import HistoryListComponent
 from src.tk_gui.components.phrase_list_component import PhraseListComponent
@@ -167,6 +171,7 @@ class MainWindow(BaseToplevelGUI):
                 on_progress=self._update_progress,
                 on_result=self._add_to_list,
                 on_complete=self._search_complete,
+                on_error=lambda msg, e: logger.warning(f"{msg}: {e}"),
             ),
             daemon=True
         )
