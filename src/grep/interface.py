@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, List, Optional, Protocol
+from typing import TYPE_CHECKING, Callable, List, Optional, Protocol, Dict, Any
 
 if TYPE_CHECKING:
     from src.grep.engine import GrepResult
@@ -29,3 +29,16 @@ class GrepEngineProtocol(Protocol):
 
     def stop(self) -> None:
         ...
+
+
+class FileParserProtocol(Protocol):
+    """
+    ファイルからコンテンツを抽出するパーサーの共通インターフェース。
+    """
+    def extract_content(
+        self,
+        file_path: str,
+        on_error: Optional[Callable[[str, Exception], None]] = None
+    ) -> List[Dict[str, Any]]:
+        ...
+
