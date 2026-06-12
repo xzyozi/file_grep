@@ -47,13 +47,13 @@ class BaseApplication:
         """検索エンジンを初期化します。"""
         try:
             # 型チェック時のエラーを避けるために一連の試行を行う
-            from src.grep.engine import GrepEngine  # type: ignore
+            from src.grep.engine import GrepEngine
             exclude_dirs = ['.git', 'node_modules', '__pycache__']
             return GrepEngine(exclude_dirs=exclude_dirs)
         except (ImportError, AttributeError):
             try:
                 from src.grep.mock_engine import MockGrepEngine
-                return MockGrepEngine() # type: ignore
+                return MockGrepEngine()
             except ImportError:
                 return None
 

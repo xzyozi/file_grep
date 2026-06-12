@@ -35,9 +35,9 @@ class MainWindow(BaseToplevelGUI):
         self.engine = self.app.engine
 
         # スレッドセーフな検索結果キューと検索状態
-        self._result_queue = queue.Queue()
+        self._result_queue: queue.Queue[GrepResult] = queue.Queue()
         self._is_searching = False
-        self._poll_id = None
+        self._poll_id: str | None = None
 
         # UI構築
         self._create_widgets()
@@ -246,7 +246,7 @@ class MainWindow(BaseToplevelGUI):
             self._result_queue.put(result)
 
     def _search_complete(self, hit_count: int) -> None:
-        def _gui_complete():
+        def _gui_complete() -> None:
             self._is_searching = False
             if self._poll_id:
                 self.after_cancel(self._poll_id)

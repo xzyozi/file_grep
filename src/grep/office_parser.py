@@ -22,7 +22,7 @@ class OfficeParser:
     }
 
     @classmethod
-    def _get_text_from_xml(cls, f) -> List[str]:
+    def _get_text_from_xml(cls, f: Any) -> List[str]:
         """w:p, w:t 構造の XML からテキストを抽出するヘルパーメソッド。"""
         texts = []
         current_paragraph_parts = []

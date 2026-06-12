@@ -46,10 +46,10 @@ class GrepEngine:
         try:
             from src.grep.office_parser import OfficeParser
             return {
-                '.docx': OfficeParser,  # type: ignore
-                '.docm': OfficeParser,  # type: ignore
-                '.xlsx': OfficeParser,  # type: ignore
-                '.xlsm': OfficeParser,  # type: ignore
+                '.docx': OfficeParser,
+                '.docm': OfficeParser,
+                '.xlsx': OfficeParser,
+                '.xlsm': OfficeParser,
             }
         except ImportError:
             return {}
