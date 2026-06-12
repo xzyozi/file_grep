@@ -16,7 +16,11 @@ class HistoryManager:
 
     def __init__(self, filename: str = "history.json", max_items: int = 50) -> None:
         # プロジェクトルート (src の二階層上) を基準に絶対パスを構築
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        import sys
+        if getattr(sys, 'frozen', False):
+            root_dir = os.path.dirname(os.path.abspath(sys.executable))
+        else:
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
         self.filepath = os.path.join(root_dir, filename)
         self.max_items = max_items
         self.history: List[Dict[str, Any]] = self._load_history()

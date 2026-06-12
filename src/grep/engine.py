@@ -6,7 +6,7 @@ import re
 import threading
 from typing import Any, Callable, Dict, List, Optional
 
-from src.grep.office_parser import OfficeParser
+from src.grep.interface import FileParserProtocol
 
 
 @dataclass
@@ -30,6 +30,7 @@ class GrepEngine:
         exclude_dirs: Optional[List[str]] = None,
         exclude_exts: Optional[List[str]] = None,
         encodings: Optional[List[str]] = None,
+        parsers: Optional[Dict[str, FileParserProtocol]] = None,
     ):
         self.max_threads = max_threads
         self._stop_event = threading.Event()
@@ -38,6 +39,20 @@ class GrepEngine:
         self.encodings = encodings if encodings is not None else [
             'utf-8', 'cp932', 'shift_jis', 'euc_jp', 'iso-2022-jp', 'utf-16'
         ]
+        self.parsers = parsers if parsers is not None else self._init_default_parsers()
+
+    def _init_default_parsers(self) -> Dict[str, FileParserProtocol]:
+        """デフォルトのファイルパーサーをロードして返します。"""
+        try:
+            from src.grep.office_parser import OfficeParser
+            return {
+                '.docx': OfficeParser,
+                '.docm': OfficeParser,
+                '.xlsx': OfficeParser,
+                '.xlsm': OfficeParser,
+            }
+        except ImportError:
+            return {}
 
     def stop(self) -> None:
         """検索を中断します。スレッドセーフにイベントを発行します。"""
@@ -199,9 +214,10 @@ class GrepEngine:
         results = []
         ext = os.path.splitext(file_path)[1].lower()
 
-        # Officeファイルの処理
-        if ext in ('.docx', '.docm', '.xlsx', '.xlsm'):
-            office_data = OfficeParser.extract_content(file_path, on_error)
+        # 登録されたパーサーが存在する場合は処理を行う
+        parser = self.parsers.get(ext)
+        if parser:
+            office_data = parser.extract_content(file_path, on_error)
             if office_data:
                 for item in office_data:
                     line = item.get("text", "")

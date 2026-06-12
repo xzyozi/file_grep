@@ -9,9 +9,9 @@ def setup_logging() -> logging.Logger:
     # ログディレクトリの設定
     if sys.platform == "win32":
         # USERPROFILEを使用して他のデータファイルと一貫性を保つ
-        log_dir = os.path.join(os.environ['USERPROFILE'], '.clipWatcher', 'logs')
+        log_dir = os.path.join(os.environ['USERPROFILE'], '.file_grep', 'logs')
     else:
-        log_dir = os.path.join(os.path.expanduser('~'), '.clipwatcher', 'logs')
+        log_dir = os.path.join(os.path.expanduser('~'), '.file_grep', 'logs')
 
     os.makedirs(log_dir, exist_ok=True)
 
@@ -29,7 +29,7 @@ def setup_logging() -> logging.Logger:
 
 
     # ログファイルの設定
-    log_file = os.path.join(log_dir, f'clipwatcher_{datetime.now().strftime("%Y%m%d")}.log')
+    log_file = os.path.join(log_dir, f'file_grep_{datetime.now().strftime("%Y%m%d")}.log')
 
     # ロギングの基本設定
     # この関数が複数回呼び出された場合に備えて、既存のハンドラをクリアする

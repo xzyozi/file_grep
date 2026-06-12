@@ -34,4 +34,5 @@ wx_gui_before/
 
 # App data
 history.json
+settings.json
 *.grep.txt
