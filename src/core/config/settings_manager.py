@@ -27,7 +27,11 @@ class SettingsManager:
         self.event_dispatcher = event_dispatcher
 
         # プロジェクトルート (src の一階層上) を基準に絶対パスを構築
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        import sys
+        if getattr(sys, 'frozen', False):
+            root_dir = os.path.dirname(os.path.abspath(sys.executable))
+        else:
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
         self.config_path = os.path.join(root_dir, config_name)
 
         logger.info(f"Target config path: {self.config_path}")
