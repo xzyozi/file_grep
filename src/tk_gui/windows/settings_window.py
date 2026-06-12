@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import messagebox, ttk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable
 
 from src.tk_gui.base.base_toplevel_gui import BaseToplevelGUI
 
@@ -56,7 +56,7 @@ class SettingsWindow(BaseToplevelGUI):
         )
         theme_combo.grid(row=0, column=1, sticky=tk.EW, padx=5)
         # テーマ選択時、設定の適用とチェックボタンテーマの適用を行う
-        theme_combo.bind('<<ComboboxSelected>>', lambda e: (self._apply_settings(save=False), self._apply_cb_theme()))
+        theme_combo.bind('<<ComboboxSelected>>', self._on_theme_select)
 
         # 言語設定
         self.lang_frame = ttk.LabelFrame(container, text=_t('language'), padding=10)
@@ -72,10 +72,7 @@ class SettingsWindow(BaseToplevelGUI):
         )
         lang_combo.grid(row=0, column=1, sticky=tk.EW, padx=5)
         # 言語選択時、設定の適用とUIのリアルタイム再翻訳を行う
-        lang_combo.bind(
-            '<<ComboboxSelected>>',
-            lambda e: (self._apply_settings(save=False), self._on_language_changed())
-        )
+        lang_combo.bind('<<ComboboxSelected>>', self._on_language_select)
 
         # 下部ボタンを先に配置（つぶれ防止）
         btn_frame = ttk.Frame(container)
@@ -119,14 +116,14 @@ class SettingsWindow(BaseToplevelGUI):
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # マウスホイールイベントのバインド (マウスオーバー時のみ有効化)
-        def _on_mousewheel(event):
+        def _on_mousewheel(event: tk.Event) -> None:
             self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         self.canvas.bind("<Enter>", lambda e: self.canvas.bind_all("<MouseWheel>", _on_mousewheel))
         self.canvas.bind("<Leave>", lambda e: self.canvas.unbind_all("<MouseWheel>"))
 
-        self.cb_widgets = []
-        self.cat_vars = {}
-        self.ext_vars = {}
+        self.cb_widgets: list[tk.Checkbutton] = []
+        self.cat_vars: dict[str, tk.BooleanVar] = {}
+        self.ext_vars: dict[str, tk.BooleanVar] = {}
 
         self._populate_ext_list()
 
@@ -158,7 +155,7 @@ class SettingsWindow(BaseToplevelGUI):
         self.ext_vars.clear()
 
         for cat in self.ext_categories:
-            cat_name = cat["name"]
+            cat_name = str(cat["name"])
             cat_exts = cat["exts"]
 
             # カテゴリ親フレーム
@@ -169,6 +166,9 @@ class SettingsWindow(BaseToplevelGUI):
             cat_var = tk.BooleanVar(value=False)
             self.cat_vars[cat_name] = cat_var
 
+            def make_cmd(name: str) -> Callable[[], None]:
+                return lambda: self._on_category_click(name)
+
             cat_cb = tk.Checkbutton(
                 cat_frame,
                 text=cat_name,
@@ -176,7 +176,7 @@ class SettingsWindow(BaseToplevelGUI):
                 font=("TkDefaultFont", 10, "bold"),
                 cursor="hand2",
                 relief="flat",
-                command=lambda name=cat_name: self._on_category_click(name)
+                command=make_cmd(cat_name)
             )
             cat_cb.pack(anchor="w")
             self.cb_widgets.append(cat_cb)
@@ -237,7 +237,7 @@ class SettingsWindow(BaseToplevelGUI):
                 current_exts.append(ext)
         self.exclude_extensions_var.set(",".join(current_exts))
 
-    def _on_entry_changed(self, *args) -> None:
+    def _on_entry_changed(self, *args: Any) -> None:
         """Entryの変更にチェックボタン状態を同期"""
         current_exts = [e.strip().lower() for e in self.exclude_extensions_var.get().split(',') if e.strip()]
         current_exts = [('.' + e) if not e.startswith('.') else e for e in current_exts]
@@ -246,7 +246,7 @@ class SettingsWindow(BaseToplevelGUI):
             var.set(ext in current_exts)
 
         for cat in self.ext_categories:
-            cat_name = cat["name"]
+            cat_name = str(cat["name"])
             cat_exts = cat["exts"]
             checked_count = sum(1 for e in cat_exts if e in current_exts)
             self.cat_vars[cat_name].set(checked_count == len(cat_exts))
@@ -320,6 +320,14 @@ class SettingsWindow(BaseToplevelGUI):
 
         # テーマ配色も再適用
         self._apply_cb_theme()
+
+    def _on_theme_select(self, event: tk.Event) -> None:
+        self._apply_settings(save=False)
+        self._apply_cb_theme()
+
+    def _on_language_select(self, event: tk.Event) -> None:
+        self._apply_settings(save=False)
+        self._on_language_changed()
 
     def _apply_settings(self, save: bool = False) -> None:
         """現在の入力を設定マネージャーに反映します。"""
