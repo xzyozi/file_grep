@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
-import xml.etree.ElementTree as ET
+try:
+    import defusedxml.ElementTree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
 import zipfile
 
 
