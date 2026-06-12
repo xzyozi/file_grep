@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
+
 try:
     import defusedxml.ElementTree as ET
 except ImportError:
