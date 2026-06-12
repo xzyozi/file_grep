@@ -63,9 +63,6 @@ class BaseApplication:
     def run(self) -> None:
         if self.gui:
             self.gui.initialize()
-            initial_theme = self.settings_manager.get_setting("theme", "light")
-            if hasattr(self.gui, 'apply_theme'):
-                 self.gui.apply_theme(initial_theme)
             self.gui.run()
 
     def quit(self) -> None:
