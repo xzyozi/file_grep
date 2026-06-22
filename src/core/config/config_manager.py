@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import logging
 from dataclasses import asdict, dataclass, field
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -44,7 +44,12 @@ class ConfigManager:
         self.config = config
         logger.info(f"Exclude settings saved to {self.config_path}")
 
-    def update(self, exclude_dirs: Optional[List[str]] = None, exclude_exts: Optional[List[str]] = None, save: bool = True) -> ExcludeConfig:
+    def update(
+        self,
+        exclude_dirs: Optional[List[str]] = None,
+        exclude_exts: Optional[List[str]] = None,
+        save: bool = True
+    ) -> ExcludeConfig:
         """現在の設定を更新し、必要に応じて保存します。"""
         if exclude_dirs is not None:
             self.config.exclude_dirs = self._normalize_list(exclude_dirs)

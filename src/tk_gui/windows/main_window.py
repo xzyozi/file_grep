@@ -8,14 +8,13 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Any, Dict
 
 from src.tk_gui.base.base_toplevel_gui import BaseToplevelGUI
-
-logger = logging.getLogger(__name__)
-
 from src.tk_gui.components.grep_result_list_component import GrepResultListComponent
 from src.tk_gui.components.history_list_component import HistoryListComponent
 from src.tk_gui.components.phrase_list_component import PhraseListComponent
 from src.tk_gui.components.search_param_component import SearchParamComponent
 from src.tk_gui.windows.settings_window import SettingsWindow
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from src.core.base_application import BaseApplication
@@ -36,9 +35,9 @@ class MainWindow(BaseToplevelGUI):
         self.engine = self.app.engine
 
         # スレッドセーフな検索結果キューと検索状態
-        self._result_queue = queue.Queue()
+        self._result_queue: queue.Queue[GrepResult] = queue.Queue()
         self._is_searching = False
-        self._poll_id = None
+        self._poll_id: str | None = None
 
         # UI構築
         self._create_widgets()
@@ -112,7 +111,9 @@ class MainWindow(BaseToplevelGUI):
         self.phrase_list = PhraseListComponent(
             self.notebook,
             self.app,
-            on_select=lambda label, pattern, is_regex: self.search_params.set_values(keyword=pattern, regex_mode=is_regex)
+            on_select=lambda label, pattern, is_regex: self.search_params.set_values(
+                keyword=pattern, regex_mode=is_regex
+            )
         )
         self.notebook.add(self.phrase_list, text=_t('snippets'))
 
@@ -129,7 +130,16 @@ class MainWindow(BaseToplevelGUI):
         self.search_params.set_values(keyword=keyword, directory=directory, regex_mode=is_regex)
         self.notebook.select(0)
 
-    def _on_start_search(self, target_dir: str, search_text: str, regex_mode: bool, ignore_case: bool, whole_word: bool, exclude_dirs: list[str], exclude_file_patterns: list[str]) -> None:
+    def _on_start_search(
+        self,
+        target_dir: str,
+        search_text: str,
+        regex_mode: bool,
+        ignore_case: bool,
+        whole_word: bool,
+        exclude_dirs: list[str],
+        exclude_file_patterns: list[str]
+    ) -> None:
         """検索開始処理。"""
         engine = self.engine
         if not engine:
@@ -183,7 +193,7 @@ class MainWindow(BaseToplevelGUI):
         if engine:
             engine.stop()
             self.status_var.set('Stopping...')
-        
+
         # 停止したら即座にポーリング停止と残存フラッシュを行い状態を更新
         self._is_searching = False
         if self._poll_id:
@@ -236,7 +246,7 @@ class MainWindow(BaseToplevelGUI):
             self._result_queue.put(result)
 
     def _search_complete(self, hit_count: int) -> None:
-        def _gui_complete():
+        def _gui_complete() -> None:
             self._is_searching = False
             if self._poll_id:
                 self.after_cancel(self._poll_id)

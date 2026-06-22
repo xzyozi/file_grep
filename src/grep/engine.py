@@ -1,12 +1,12 @@
 import concurrent.futures
 from dataclasses import dataclass, field
+import fnmatch
 import os
 import re
 import threading
-import fnmatch
 from typing import Any, Callable, Dict, List, Optional
 
-from src.grep.office_parser import OfficeParser
+from src.grep.interface import FileParserProtocol
 
 
 @dataclass
@@ -30,12 +30,29 @@ class GrepEngine:
         exclude_dirs: Optional[List[str]] = None,
         exclude_exts: Optional[List[str]] = None,
         encodings: Optional[List[str]] = None,
+        parsers: Optional[Dict[str, FileParserProtocol]] = None,
     ):
         self.max_threads = max_threads
         self._stop_event = threading.Event()
         self.exclude_dirs = self._normalize_dirs(exclude_dirs)
         self.exclude_exts = self._normalize_extensions(exclude_exts)
-        self.encodings = encodings if encodings is not None else ['utf-8', 'cp932', 'shift_jis', 'euc_jp', 'iso-2022-jp', 'utf-16']
+        self.encodings = encodings if encodings is not None else [
+            'utf-8', 'cp932', 'shift_jis', 'euc_jp', 'iso-2022-jp', 'utf-16'
+        ]
+        self.parsers = parsers if parsers is not None else self._init_default_parsers()
+
+    def _init_default_parsers(self) -> Dict[str, FileParserProtocol]:
+        """デフォルトのファイルパーサーをロードして返します。"""
+        try:
+            from src.grep.office_parser import OfficeParser
+            return {
+                '.docx': OfficeParser,
+                '.docm': OfficeParser,
+                '.xlsx': OfficeParser,
+                '.xlsm': OfficeParser,
+            }
+        except ImportError:
+            return {}
 
     def stop(self) -> None:
         """検索を中断します。スレッドセーフにイベントを発行します。"""
@@ -58,7 +75,7 @@ class GrepEngine:
     ) -> int:
         """
         指定されたディレクトリ内を再帰的に検索します。
-        
+
         Args:
             target_dir: 検索対象ディレクトリ
             search_text: 検索文字列（または正規表現パターン）
@@ -70,7 +87,7 @@ class GrepEngine:
             on_progress: (完了ファイル数, 総ファイル数) を通知するコールバック
             on_result: ヒットした GrepResult を通知するコールバック
             on_complete: 合計ヒット数を通知するコールバック
-            
+
         Returns:
             int: 合計ヒット数
         """
@@ -98,7 +115,11 @@ class GrepEngine:
         if regex_mode:
             try:
                 # 単語単位かつ正規表現の場合は、ユーザーのパターンを \b で囲む
-                final_pattern = r'\b' + actual_search_text + r'\b' if (whole_word and not actual_search_text.startswith(r'\b')) else actual_search_text
+                final_pattern = (
+                    r'\b' + actual_search_text + r'\b'
+                    if (whole_word and not actual_search_text.startswith(r'\b'))
+                    else actual_search_text
+                )
                 pattern = re.compile(final_pattern, re_flags)
             except re.error as e:
                 raise ValueError(f"Invalid regular expression: {e}")
@@ -193,15 +214,16 @@ class GrepEngine:
         results = []
         ext = os.path.splitext(file_path)[1].lower()
 
-        # Officeファイルの処理
-        if ext in ('.docx', '.docm', '.xlsx', '.xlsm'):
-            office_data = OfficeParser.extract_content(file_path, on_error)
+        # 登録されたパーサーが存在する場合は処理を行う
+        parser = self.parsers.get(ext)
+        if parser:
+            office_data = parser.extract_content(file_path, on_error)
             if office_data:
                 for item in office_data:
                     line = item.get("text", "")
                     location = item.get("location", "Unknown")
                     meta = item.get("metadata", {})
-                    
+
                     if self._check_hit(line, search_text, regex_mode, ignore_case, pattern):
                         results.append(GrepResult(
                             file_path=file_path,
@@ -257,12 +279,19 @@ class GrepEngine:
             normalized.append(ext.lower())
         return normalized
 
-    def _check_hit(self, line: str, search_text: str, regex_mode: bool, ignore_case: bool, pattern: Optional[re.Pattern] = None) -> bool:
+    def _check_hit(
+        self,
+        line: str,
+        search_text: str,
+        regex_mode: bool,
+        ignore_case: bool,
+        pattern: Optional[re.Pattern] = None
+    ) -> bool:
         """指定された行が検索テキストにマッチするか判定します。"""
         if regex_mode and pattern:
             return bool(pattern.search(line))
-        
+
         if ignore_case:
             return search_text.lower() in line.lower()
-        
+
         return search_text in line

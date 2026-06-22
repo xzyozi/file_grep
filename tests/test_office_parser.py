@@ -119,3 +119,25 @@ class TestOfficeParser:
         labels = [r['location'] for r in results]
         assert "Body P.1" in labels
         assert "Header P.1" in labels
+
+    def test_parser_on_error_handling(self, tmp_path):
+        """OfficeParserに壊れたファイルを渡した時に on_error が正しく機能するか。"""
+        bad_file = tmp_path / "broken.xlsx"
+        bad_file.write_text("invalid content", encoding="utf-8")
+        
+        errors = []
+        def on_error(msg, exc):
+            errors.append((msg, exc))
+            
+        # 1. get_xlsx_content でのエラー検証
+        res_xlsx = OfficeParser.get_xlsx_content(str(bad_file), on_error=on_error)
+        assert len(res_xlsx) == 0
+        assert len(errors) == 1
+        assert "Error parsing XLSX" in errors[0][0]
+        
+        # 2. get_docx_content でのエラー検証
+        errors.clear()
+        res_docx = OfficeParser.get_docx_content(str(bad_file), on_error=on_error)
+        assert len(res_docx) == 0
+        assert len(errors) == 1
+        assert "Error parsing DOCX" in errors[0][0]

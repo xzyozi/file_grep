@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.core.base_application import BaseApplication
 from src.tk_gui.base.tkinter_adapter import TkinterGUIAdapter
+from src.utils.logging_config import setup_logging
 
 
 def run_app() -> None:
@@ -24,6 +25,7 @@ def run_app() -> None:
 def main() -> None:
     """エントリポイント"""
     try:
+        setup_logging()
         run_app()
     except KeyboardInterrupt:
         print("\n\nApplication terminated by user.")

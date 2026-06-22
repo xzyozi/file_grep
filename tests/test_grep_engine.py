@@ -283,3 +283,25 @@ class TestGrepEngine:
         # *.bak は除外される
         assert any(r.file_path.endswith('.txt') for r in results)
         assert not any(r.file_path.endswith('.bak') for r in results)
+
+    def test_search_on_error_callback(self, tmp_path):
+        """検索中やファイル解析エラー発生時に on_error コールバックが正しく呼び出されるか検証する。"""
+        engine = GrepEngine()
+        
+        # 壊れた .docx ファイルを作成 (zipではないプレーンテキスト)
+        bad_docx = tmp_path / "broken.docx"
+        bad_docx.write_text("not a zip structure", encoding="utf-8")
+        
+        errors = []
+        def on_error(msg, exc):
+            errors.append((msg, exc))
+            
+        engine.search(
+            target_dir=str(tmp_path),
+            search_text="dummy",
+            on_error=on_error
+        )
+        
+        # 壊れた .docx の解析で zipfile.BadZipFile エラーが起き、on_error が呼ばれているはず
+        assert len(errors) > 0
+        assert any("parsing DOCX" in err[0] or "parsing XLSX" in err[0] for err in errors)

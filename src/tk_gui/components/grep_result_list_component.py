@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING, List
@@ -84,7 +85,12 @@ class GrepResultListComponent(BaseFrameGUI):
         if 0 <= index < len(self._results):
             file_path = self._results[index].file_path
             if os.path.exists(file_path):
-                os.startfile(file_path)
+                if sys.platform == 'win32':
+                    os.startfile(file_path)
+                elif sys.platform == 'darwin':
+                    subprocess.run(['open', file_path])
+                else:
+                    subprocess.run(['xdg-open', file_path])
 
     def _on_right_click(self, event: tk.Event) -> None:
         """右クリックメニューの表示。"""
@@ -102,11 +108,23 @@ class GrepResultListComponent(BaseFrameGUI):
         selected = self.tree.selection()
         if selected:
             index = self.tree.index(selected[0])
-            os.startfile(self._results[index].file_path)
+            file_path = self._results[index].file_path
+            if sys.platform == 'win32':
+                os.startfile(file_path)
+            elif sys.platform == 'darwin':
+                subprocess.run(['open', file_path])
+            else:
+                subprocess.run(['xdg-open', file_path])
 
     def _open_folder(self) -> None:
         selected = self.tree.selection()
         if selected:
             index = self.tree.index(selected[0])
             path = self._results[index].file_path
-            subprocess.run(['explorer', '/select,', os.path.normpath(path)])
+            if sys.platform == 'win32':
+                subprocess.run(['explorer', '/select,', os.path.normpath(path)])
+            elif sys.platform == 'darwin':
+                subprocess.run(['open', '-R', path])
+            else:
+                folder = os.path.dirname(os.path.abspath(path))
+                subprocess.run(['xdg-open', folder])
