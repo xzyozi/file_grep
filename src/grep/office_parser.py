@@ -93,16 +93,8 @@ class OfficeParser:
         results = []
         try:
             with zipfile.ZipFile(file_path, 'r') as zp:
-                # 1. 共有文字列のロード
-                shared_strings = []
-                if 'xl/sharedStrings.xml' in zp.namelist():
-                    with zp.open('xl/sharedStrings.xml') as f:
-                        context = ET.iterparse(f, events=('end',))
-                        tag_t = f"{{{cls.NAMESPACE['s']}}}t"
-                        for _, elem in context:
-                            if elem.tag == tag_t:
-                                shared_strings.append(elem.text if elem.text else "")
-                            elem.clear()
+                # 1. 共有文字列のロード (richText対応: <si> 単位で結合)
+                shared_strings = cls._load_shared_strings(zp)
 
                 # 2. シートIDとシート名のマッピング取得 (workbook.xml)
                 sheet_id_to_name = {}
@@ -126,8 +118,11 @@ class OfficeParser:
                             rel_to_path[r_id] = f"xl/{r_target}"
 
                 # 4. 各ワークシートのパース
-                tag_c = f"{{{cls.NAMESPACE['s']}}}c"
-                tag_v = f"{{{cls.NAMESPACE['s']}}}v"
+                ns_s = cls.NAMESPACE['s']
+                tag_c = f"{{{ns_s}}}c"
+                tag_v = f"{{{ns_s}}}v"
+                tag_is = f"{{{ns_s}}}is"
+                tag_t = f"{{{ns_s}}}t"
 
                 for r_id, sheet_name in sheet_id_to_name.items():
                     xml_path = rel_to_path.get(r_id)
@@ -137,36 +132,83 @@ class OfficeParser:
                     with zp.open(xml_path) as f:
                         context = ET.iterparse(f, events=('start', 'end'))
                         current_cell_ref = ""
-                        is_shared = False
+                        cell_type = ""
 
                         for event, elem in context:
                             if event == 'start' and elem.tag == tag_c:
-                                current_cell_ref = elem.get('r', '') # "A1" など
-                                is_shared = (elem.get('t') == 's') # sharedStringか
+                                current_cell_ref = elem.get('r', '')  # "A1" など
+                                cell_type = elem.get('t', '')  # 's', 'inlineStr', 'str', etc.
 
-                            elif event == 'end' and elem.tag == tag_v:
-                                value = elem.text
-                                if value is not None:
-                                    display_text = ""
-                                    if is_shared:
-                                        idx = int(value)
-                                        display_text = shared_strings[idx] if 0 <= idx < len(shared_strings) else ""
-                                    else:
-                                        display_text = value # 数値等そのまま
-
-                                    if display_text:
-                                        results.append({
-                                            "text": display_text,
-                                            "location": f"{sheet_name}!{current_cell_ref}",
-                                            "metadata": {"sheet": sheet_name, "cell": current_cell_ref}
-                                        })
                             elif event == 'end' and elem.tag == tag_c:
+                                display_text = ""
+
+                                if cell_type == 'inlineStr':
+                                    # インラインストリング: <c t="inlineStr"><is><t>text</t></is></c>
+                                    is_elem = elem.find(tag_is)
+                                    if is_elem is not None:
+                                        parts = []
+                                        for t_elem in is_elem.iter(tag_t):
+                                            if t_elem.text:
+                                                parts.append(t_elem.text)
+                                        display_text = "".join(parts)
+                                elif cell_type == 's':
+                                    # 共有文字列参照: <c t="s"><v>index</v></c>
+                                    v_elem = elem.find(tag_v)
+                                    if v_elem is not None and v_elem.text is not None:
+                                        idx = int(v_elem.text)
+                                        display_text = shared_strings[idx] if 0 <= idx < len(shared_strings) else ""
+                                elif cell_type == 'str':
+                                    # 数式結果の文字列: <c t="str"><v>text</v></c>
+                                    v_elem = elem.find(tag_v)
+                                    if v_elem is not None and v_elem.text is not None:
+                                        display_text = v_elem.text
+                                else:
+                                    # 数値・日付等: <c><v>value</v></c>
+                                    v_elem = elem.find(tag_v)
+                                    if v_elem is not None and v_elem.text is not None:
+                                        display_text = v_elem.text
+
+                                if display_text:
+                                    results.append({
+                                        "text": display_text,
+                                        "location": f"{sheet_name}!{current_cell_ref}",
+                                        "metadata": {"sheet": sheet_name, "cell": current_cell_ref}
+                                    })
+
                                 elem.clear()
 
         except Exception as e:
             if on_error:
                 on_error(f"Error parsing XLSX {file_path}", e)
         return results
+
+    @classmethod
+    def _load_shared_strings(cls, zp: zipfile.ZipFile) -> List[str]:
+        """sharedStrings.xml からリッチテキスト対応で共有文字列を読み込む。
+
+        各 <si> エレメント内の全 <t> テキストを結合して1つの文字列として扱う。
+        """
+        shared_strings: List[str] = []
+        if 'xl/sharedStrings.xml' not in zp.namelist():
+            return shared_strings
+
+        ns_s = cls.NAMESPACE['s']
+        tag_si = f"{{{ns_s}}}si"
+        tag_t = f"{{{ns_s}}}t"
+
+        with zp.open('xl/sharedStrings.xml') as f:
+            context = ET.iterparse(f, events=('end',))
+            for _, elem in context:
+                if elem.tag == tag_si:
+                    # <si> 内の全 <t> を結合 (richText対応)
+                    parts = []
+                    for t_elem in elem.iter(tag_t):
+                        if t_elem.text:
+                            parts.append(t_elem.text)
+                    shared_strings.append("".join(parts))
+                    elem.clear()
+
+        return shared_strings
 
     @classmethod
     def extract_content(
