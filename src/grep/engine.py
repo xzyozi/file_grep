@@ -12,11 +12,13 @@ from src.grep.interface import FileParserProtocol
 @dataclass
 class GrepResult:
     """Grep検索の単一ヒット結果を保持するデータクラス"""
+
     file_path: str
     line_content: str
     line_number: int = 0  # 従来の行番号
     location_display: str = ""  # GUI表示用の位置情報 (例: "Sheet1!A5")
     metadata: Dict[str, Any] = field(default_factory=dict)  # 拡張用メタデータ
+
 
 class GrepEngine:
     """
@@ -36,22 +38,23 @@ class GrepEngine:
         self._stop_event = threading.Event()
         self.exclude_dirs = self._normalize_dirs(exclude_dirs)
         self.exclude_exts = self._normalize_extensions(exclude_exts)
-        self.encodings = encodings if encodings is not None else [
-            'utf-8', 'cp932', 'shift_jis', 'euc_jp', 'iso-2022-jp', 'utf-16'
-        ]
+        self.encodings = (
+            encodings if encodings is not None else ["utf-8", "cp932", "shift_jis", "euc_jp", "iso-2022-jp", "utf-16"]
+        )
         self.parsers = parsers if parsers is not None else self._init_default_parsers()
 
     def _init_default_parsers(self) -> Dict[str, FileParserProtocol]:
         """デフォルトのファイルパーサーをロードして返します。"""
         try:
             from src.grep.office_parser import OfficeParser
+
             return {
-                '.docx': OfficeParser,
-                '.docm': OfficeParser,
-                '.xlsx': OfficeParser,
-                '.xlsm': OfficeParser,
-                '.pptx': OfficeParser,
-                '.pptm': OfficeParser,
+                ".docx": OfficeParser,
+                ".docm": OfficeParser,
+                ".xlsx": OfficeParser,
+                ".xlsm": OfficeParser,
+                ".pptx": OfficeParser,
+                ".pptm": OfficeParser,
             }
         except ImportError:
             return {}
@@ -73,7 +76,7 @@ class GrepEngine:
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_result: Optional[Callable[[GrepResult], None]] = None,
         on_complete: Optional[Callable[[int], None]] = None,
-        on_error: Optional[Callable[[str, Exception], None]] = None
+        on_error: Optional[Callable[[str, Exception], None]] = None,
     ) -> int:
         """
         指定されたディレクトリ内を再帰的に検索します。
@@ -111,15 +114,15 @@ class GrepEngine:
 
         if whole_word and not regex_mode:
             # 単語単位(非正規表現)の場合は、正規表現の \b を使うために内部的に正規表現化する
-            actual_search_text = r'\b' + re.escape(search_text) + r'\b'
+            actual_search_text = r"\b" + re.escape(search_text) + r"\b"
             regex_mode = True
 
         if regex_mode:
             try:
                 # 単語単位かつ正規表現の場合は、ユーザーのパターンを \b で囲む
                 final_pattern = (
-                    r'\b' + actual_search_text + r'\b'
-                    if (whole_word and not actual_search_text.startswith(r'\b'))
+                    r"\b" + actual_search_text + r"\b"
+                    if (whole_word and not actual_search_text.startswith(r"\b"))
                     else actual_search_text
                 )
                 pattern = re.compile(final_pattern, re_flags)
@@ -162,7 +165,7 @@ class GrepEngine:
         exclude_dirs: Optional[List[str]] = None,
         exclude_exts: Optional[List[str]] = None,
         exclude_file_patterns: Optional[List[str]] = None,
-        on_error: Optional[Callable[[str, Exception], None]] = None
+        on_error: Optional[Callable[[str, Exception], None]] = None,
     ) -> List[str]:
         """検索対象となるファイルのリストを収集します。"""
         file_list = []
@@ -206,7 +209,7 @@ class GrepEngine:
         regex_mode: bool,
         ignore_case: bool,
         pattern: Optional[re.Pattern] = None,
-        on_error: Optional[Callable[[str, Exception], None]] = None
+        on_error: Optional[Callable[[str, Exception], None]] = None,
     ) -> List[GrepResult]:
         """単一のファイルをスキャンしてヒットした行を返します。"""
         # 中断チェック
@@ -227,42 +230,43 @@ class GrepEngine:
                     meta = item.get("metadata", {})
 
                     if self._check_hit(line, search_text, regex_mode, ignore_case, pattern):
-                        results.append(GrepResult(
-                            file_path=file_path,
-                            line_content=line,
-                            location_display=location,
-                            metadata={"office_type": ext, **meta}
-                        ))
+                        results.append(
+                            GrepResult(
+                                file_path=file_path,
+                                line_content=line,
+                                location_display=location,
+                                metadata={"office_type": ext, **meta},
+                            )
+                        )
                 return results
 
         # 通常のテキストファイルの処理 (メモリ効率に優れたストリーム読み込み)
         try:
             # 1. バイナリ判定 (Null Byte Check) と エンコーディング推測用ヘッダー取得
-            with open(file_path, 'rb') as f:
-                header = f.read(1024 * 64) # 検出精度向上のため、少し多めに読み込む
-                if b'\x00' in header[:1024]:
-                    return [] # バイナリと判定してスキップ
+            with open(file_path, "rb") as f:
+                header = f.read(1024 * 64)  # 検出精度向上のため、少し多めに読み込む
+                if b"\x00" in header[:1024]:
+                    return []  # バイナリと判定してスキップ
 
             # 2. EncodingManagerによる高精度エンコーディング判定
             from src.grep.office_parser import EncodingManager
+
             manager = EncodingManager(self.encodings)
             detected = manager.detect_encoding(header)
-            
+
             # 推測されたエンコーディング候補を先頭にした試行リストを作成
             try_encodings = [detected.encoding] + [enc for enc in self.encodings if enc != detected.encoding]
 
             # 3. エンコーディング試行とストリーム検索
             for enc in try_encodings:
                 try:
-                    with open(file_path, 'r', encoding=enc, errors='strict') as f:
+                    with open(file_path, "r", encoding=enc, errors="strict") as f:
                         for i, line in enumerate(f, 1):
                             if self._check_hit(line, search_text, regex_mode, ignore_case, pattern):
-                                results.append(GrepResult(
-                                    file_path=file_path,
-                                    line_content=line.rstrip(),
-                                    line_number=i
-                                ))
-                    return results # 成功したら終了
+                                results.append(
+                                    GrepResult(file_path=file_path, line_content=line.rstrip(), line_number=i)
+                                )
+                    return results  # 成功したら終了
                 except (UnicodeDecodeError, LookupError):
                     continue
         except (PermissionError, OSError) as e:
@@ -284,18 +288,13 @@ class GrepEngine:
             ext = str(item).strip()
             if not ext:
                 continue
-            if not ext.startswith('.'):
-                ext = f'.{ext}'
+            if not ext.startswith("."):
+                ext = f".{ext}"
             normalized.append(ext.lower())
         return normalized
 
     def _check_hit(
-        self,
-        line: str,
-        search_text: str,
-        regex_mode: bool,
-        ignore_case: bool,
-        pattern: Optional[re.Pattern] = None
+        self, line: str, search_text: str, regex_mode: bool, ignore_case: bool, pattern: Optional[re.Pattern] = None
     ) -> bool:
         """指定された行が検索テキストにマッチするか判定します。"""
         if regex_mode and pattern:

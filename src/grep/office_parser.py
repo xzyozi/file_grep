@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import io
-import os
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional
 import unicodedata
 import zipfile
 
@@ -17,6 +16,7 @@ except ImportError:
 @dataclass
 class EncodingResult:
     """エンコーディング検出結果"""
+
     encoding: str
     confidence: float
     detection_method: str
@@ -26,123 +26,121 @@ class EncodingResult:
 @dataclass
 class DecodedContent:
     """デコード済みコンテンツ"""
+
     text: str
     encoding_used: str
     success: bool
     has_replacement_chars: bool = False
-    errors: List[str] = None
-    
-    def __post_init__(self):
+    errors: Optional[List[str]] = None
+
+    def __post_init__(self) -> None:
         if self.errors is None:
             self.errors = []
 
 
 class EncodingManager:
     """多段階エンコーディング検出・管理クラス"""
-    
+
     # 日本語・CJK文字対応のエンコーディング優先リスト
     DEFAULT_ENCODINGS = [
-        'utf-8-sig',      # BOM付きUTF-8（最優先）
-        'utf-8',          # 標準UTF-8
-        'cp932',          # Windows日本語（Shift_JIS拡張）
-        'shift_jis',      # 標準Shift_JIS
-        'euc-jp',         # EUC-JP
-        'iso-2022-jp',    # JIS
-        'gb18030',        # 中国語
-        'gbk',
-        'gb2312',
-        'big5',           # 繁体字中国語
-        'euc-kr',         # 韓国語
-        'cp949',          # 韓国語（拡張）
-        'latin-1',        # 最後の手段
+        "utf-8-sig",  # BOM付きUTF-8（最優先）
+        "utf-8",  # 標準UTF-8
+        "cp932",  # Windows日本語（Shift_JIS拡張）
+        "shift_jis",  # 標準Shift_JIS
+        "euc-jp",  # EUC-JP
+        "iso-2022-jp",  # JIS
+        "gb18030",  # 中国語
+        "gbk",
+        "gb2312",
+        "big5",  # 繁体字中国語
+        "euc-kr",  # 韓国語
+        "cp949",  # 韓国語（拡張）
+        "latin-1",  # 最後の手段
     ]
-    
+
     def __init__(self, custom_encodings: Optional[List[str]] = None):
         self.encodings = custom_encodings or self.DEFAULT_ENCODINGS
-    
+
     def detect_encoding(self, content: bytes) -> EncodingResult:
         """複数エンコーディングを段階的に試行し最適な文字コードを特定"""
         if not content:
             return EncodingResult("utf-8", 0.0, "empty_content")
-        
+
         # BOM検出（最優先）
         bom_result = self._detect_bom(content)
         if bom_result.confidence > 0.9:
             return bom_result
-        
+
         best_encoding = "utf-8"
         max_confidence = 0.0
         best_method = "fallback"
-        
+
         for encoding in self.encodings:
             try:
                 decoded_text = content.decode(encoding)
                 confidence = self._calculate_confidence(decoded_text, encoding, content)
-                
+
                 if confidence > max_confidence:
                     max_confidence = confidence
                     best_encoding = encoding
                     best_method = "pattern_analysis"
-                
+
                 # 高信頼度での早期終了
                 if confidence >= 0.95:
                     break
-                    
+
             except (UnicodeDecodeError, UnicodeError):
                 continue
-        
+
         return EncodingResult(
-            encoding=best_encoding,
-            confidence=max_confidence,
-            detection_method=best_method,
-            has_bom=bom_result.has_bom
+            encoding=best_encoding, confidence=max_confidence, detection_method=best_method, has_bom=bom_result.has_bom
         )
-    
+
     def _detect_bom(self, content: bytes) -> EncodingResult:
         """BOM（Byte Order Mark）の検出"""
-        if content.startswith(b'\xef\xbb\xbf'):
+        if content.startswith(b"\xef\xbb\xbf"):
             return EncodingResult("utf-8-sig", 1.0, "bom_detection", has_bom=True)
-        if content.startswith(b'\xff\xfe') or content.startswith(b'\xfe\xff'):
+        if content.startswith(b"\xff\xfe") or content.startswith(b"\xfe\xff"):
             return EncodingResult("utf-16", 0.9, "bom_detection", has_bom=True)
-        if content.startswith(b'\xff\xfe\x00\x00') or content.startswith(b'\x00\x00\xfe\xff'):
+        if content.startswith(b"\xff\xfe\x00\x00") or content.startswith(b"\x00\x00\xfe\xff"):
             return EncodingResult("utf-32", 0.9, "bom_detection", has_bom=True)
         return EncodingResult("utf-8", 0.0, "no_bom")
-    
+
     def _calculate_confidence(self, text: str, encoding: str, original_bytes: bytes) -> float:
         """デコードされたテキストの信頼度を計算"""
         if not text:
             return 0.0
-        
+
         confidence = 0.0
-        
+
         # 1. 制御文字・置換文字の確認
-        replacement_chars = text.count('')
+        replacement_chars = text.count("")
         if replacement_chars > 0:
             confidence -= 0.3 * (replacement_chars / len(text))
-        
+
         # 2. 日本語文字パターンの検出
-        if encoding in ['utf-8', 'utf-8-sig', 'cp932', 'shift_jis', 'euc-jp']:
+        if encoding in ["utf-8", "utf-8-sig", "cp932", "shift_jis", "euc-jp"]:
             confidence += self._detect_japanese_patterns(text) * 0.4
-        elif encoding in ['gb18030', 'gbk', 'gb2312', 'big5']:
+        elif encoding in ["gb18030", "gbk", "gb2312", "big5"]:
             confidence += self._detect_chinese_patterns(text) * 0.4
-        elif encoding in ['euc-kr', 'cp949']:
+        elif encoding in ["euc-kr", "cp949"]:
             confidence += self._detect_korean_patterns(text) * 0.4
-        
+
         # ASCII互換性
         try:
-            text.encode('ascii')
+            text.encode("ascii")
             confidence += 0.1
         except UnicodeEncodeError:
             pass
-        
+
         # 文字の正規性
         try:
-            normalized = unicodedata.normalize('NFC', text)
+            normalized = unicodedata.normalize("NFC", text)
             if len(normalized) == len(text):
                 confidence += 0.2
         except (ValueError, TypeError):
             confidence -= 0.1
-        
+
         # バイト長とテキスト長の整合性
         try:
             re_encoded = text.encode(encoding)
@@ -150,99 +148,90 @@ class EncodingManager:
                 confidence += 0.2
         except (UnicodeEncodeError, UnicodeError):
             confidence -= 0.1
-        
+
         return max(0.0, min(1.0, confidence))
-    
+
     def _detect_japanese_patterns(self, text: str) -> float:
         if not text:
             return 0.0
-        japanese_chars = 0
+        japanese_chars: float = 0.0
         total_chars = len(text)
         for char in text:
-            if '\u3040' <= char <= '\u309F': # ひらがな
+            if "\u3040" <= char <= "\u309f":  # ひらがな
                 japanese_chars += 1
-            elif '\u30A0' <= char <= '\u30FF': # カタカナ
+            elif "\u30a0" <= char <= "\u30ff":  # カタカナ
                 japanese_chars += 1
-            elif '\u4E00' <= char <= '\u9FAF': # 漢字
+            elif "\u4e00" <= char <= "\u9faf":  # 漢字
                 japanese_chars += 1
-            elif '\uFF00' <= char <= '\uFFEF': # 全角記号
+            elif "\uff00" <= char <= "\uffef":  # 全角記号
                 japanese_chars += 0.5
         return japanese_chars / total_chars if total_chars > 0 else 0.0
-    
+
     def _detect_chinese_patterns(self, text: str) -> float:
         if not text:
             return 0.0
         chinese_chars = 0
         total_chars = len(text)
         for char in text:
-            if '\u4E00' <= char <= '\u9FAF' or '\uF900' <= char <= '\uFAFF':
+            if "\u4e00" <= char <= "\u9faf" or "\uf900" <= char <= "\ufaff":
                 chinese_chars += 1
         return chinese_chars / total_chars if total_chars > 0 else 0.0
-    
+
     def _detect_korean_patterns(self, text: str) -> float:
         if not text:
             return 0.0
         korean_chars = 0
         total_chars = len(text)
         for char in text:
-            if '\uAC00' <= char <= '\uD7AF' or '\u1100' <= char <= '\u11FF':
+            if "\uac00" <= char <= "\ud7af" or "\u1100" <= char <= "\u11ff":
                 korean_chars += 1
         return korean_chars / total_chars if total_chars > 0 else 0.0
-    
-    def safe_decode(self, content: bytes, encoding: str = None) -> DecodedContent:
+
+    def safe_decode(self, content: bytes, encoding: Optional[str] = None) -> DecodedContent:
         """安全な文字列デコード"""
         if not content:
             return DecodedContent("", "utf-8", True)
         if encoding is None:
             encoding_result = self.detect_encoding(content)
             encoding = encoding_result.encoding
-        
+
         try:
             decoded_text = content.decode(encoding)
             return DecodedContent(
-                text=decoded_text,
-                encoding_used=encoding,
-                success=True,
-                has_replacement_chars=('' in decoded_text)
+                text=decoded_text, encoding_used=encoding, success=True, has_replacement_chars=("" in decoded_text)
             )
         except (UnicodeDecodeError, UnicodeError) as e:
             return self._decode_with_fallback(content, encoding, str(e))
-    
+
     def _decode_with_fallback(self, content: bytes, failed_encoding: str, error_msg: str) -> DecodedContent:
         fallback_encodings = [enc for enc in self.encodings if enc != failed_encoding]
         for encoding in fallback_encodings:
             try:
-                decoded_text = content.decode(encoding, errors='replace')
+                decoded_text = content.decode(encoding, errors="replace")
                 return DecodedContent(
                     text=decoded_text,
                     encoding_used=encoding,
                     success=True,
                     has_replacement_chars=True,
-                    errors=[f"Original encoding '{failed_encoding}' failed: {error_msg}"]
+                    errors=[f"Original encoding '{failed_encoding}' failed: {error_msg}"],
                 )
             except (UnicodeDecodeError, UnicodeError):
                 continue
         try:
-            decoded_text = content.decode('utf-8', errors='replace')
+            decoded_text = content.decode("utf-8", errors="replace")
             return DecodedContent(
                 text=decoded_text,
-                encoding_used='utf-8',
+                encoding_used="utf-8",
                 success=False,
                 has_replacement_chars=True,
-                errors=[
-                    f"All encodings failed. Used UTF-8 with replacement.",
-                    f"Original error: {error_msg}"
-                ]
+                errors=["All encodings failed. Used UTF-8 with replacement.", f"Original error: {error_msg}"],
             )
         except Exception as final_error:
             return DecodedContent(
                 text="",
-                encoding_used='utf-8',
+                encoding_used="utf-8",
                 success=False,
-                errors=[
-                    f"Complete decoding failure: {final_error}",
-                    f"Original error: {error_msg}"
-                ]
+                errors=[f"Complete decoding failure: {final_error}", f"Original error: {error_msg}"],
             )
 
 
@@ -250,6 +239,7 @@ class OfficeParser:
     """
     Excel (.xlsx)・Word (.docx)・PowerPoint (.pptx) ファイルから、位置情報付きでテキストを抽出するパーサ。
     """
+
     encoding_manager = EncodingManager()
 
     NAMESPACE = {
@@ -268,8 +258,8 @@ class OfficeParser:
         try:
             content = f.read()
             decoded = cls.encoding_manager.safe_decode(content)
-            bytes_stream = io.BytesIO(decoded.text.encode('utf-8'))
-            
+            bytes_stream = io.BytesIO(decoded.text.encode("utf-8"))
+
             context = ET.iterparse(bytes_stream, events=("start", "end"))
             ns_w = f"{{{cls.NAMESPACE['w']}}}"
             tag_p = f"{ns_w}p"
@@ -330,75 +320,73 @@ class OfficeParser:
     def get_sheet_summary(cls, file_path: str) -> Dict[str, Any]:
         """シート名一覧とセル数のみ軽量取得 (v3.0移植)"""
         try:
-            with zipfile.ZipFile(file_path, 'r') as zp:
+            with zipfile.ZipFile(file_path, "r") as zp:
                 # 1. シートIDとシート名のマッピング取得 (workbook.xml)
                 sheet_list = []
-                with zp.open('xl/workbook.xml') as f:
+                with zp.open("xl/workbook.xml") as f:
                     xml_content = cls.encoding_manager.safe_decode(f.read()).text
-                    root = ET.fromstring(xml_content.encode('utf-8'))
-                    for sheet in root.findall('.//s:sheet', cls.NAMESPACE):
-                        s_id = sheet.get('sheetId')
-                        s_name = sheet.get('name')
+                    root = ET.fromstring(xml_content.encode("utf-8"))
+                    for sheet in root.findall(".//s:sheet", cls.NAMESPACE):
+                        s_id = sheet.get("sheetId")
+                        s_name = sheet.get("name")
                         r_id = sheet.get(f"{{{cls.NAMESPACE['r']}}}id")
                         if s_id and s_name and r_id:
-                            sheet_list.append({
-                                'name': s_name,
-                                'sheet_id': int(s_id),
-                                'r_id': r_id
-                            })
-                
+                            sheet_list.append({"name": s_name, "sheet_id": int(s_id), "r_id": r_id})
+
                 # 2. シートIDとファイルパスのマッピング取得 (xl/_rels/workbook.xml.rels)
                 rel_to_path = {}
-                with zp.open('xl/_rels/workbook.xml.rels') as f:
+                with zp.open("xl/_rels/workbook.xml.rels") as f:
                     xml_content = cls.encoding_manager.safe_decode(f.read()).text
-                    root = ET.fromstring(xml_content.encode('utf-8'))
-                    for rel in root.findall('.//rel:Relationship', cls.NAMESPACE):
-                        r_id = rel.get('Id')
-                        r_target = rel.get('Target')
+                    root = ET.fromstring(xml_content.encode("utf-8"))
+                    for rel in root.findall(".//rel:Relationship", cls.NAMESPACE):
+                        r_id = rel.get("Id")
+                        r_target = rel.get("Target")
                         if r_id and r_target:
                             rel_to_path[r_id] = f"xl/{r_target}"
-                
+
                 # 3. 各シートのセル数をカウント
-                ns_s = cls.NAMESPACE['s']
+                ns_s = cls.NAMESPACE["s"]
                 tag_c = f"{{{ns_s}}}c"
-                
+
                 for sheet_info in sheet_list:
-                    xml_path = rel_to_path.get(sheet_info['r_id'])
+                    xml_path = rel_to_path.get(sheet_info["r_id"])
                     cell_count = 0
-                    
+
                     if xml_path and xml_path in zp.namelist():
                         with zp.open(xml_path) as f:
                             xml_content = cls.encoding_manager.safe_decode(f.read()).text
-                            root = ET.fromstring(xml_content.encode('utf-8'))
+                            root = ET.fromstring(xml_content.encode("utf-8"))
                             for elem in root.iter(tag_c):
                                 # 値を持つセルのみカウント
-                                v_elem = elem.find(f'.//{{{ns_s}}}v')
-                                is_elem = elem.find(f'.//{{{ns_s}}}is')
+                                v_elem = elem.find(f".//{{{ns_s}}}v")
+                                is_elem = elem.find(f".//{{{ns_s}}}is")
                                 if v_elem is not None or is_elem is not None:
                                     cell_count += 1
-                    
-                    sheet_info['cell_count'] = cell_count
-                    del sheet_info['r_id']
-                
+
+                    sheet_info["cell_count"] = cell_count
+                    del sheet_info["r_id"]
+
                 return {
                     "type": "xlsx",
                     "mode": "sheets",
                     "sheets": sheet_list,
                     "statistics": {
                         "sheet_count": len(sheet_list),
-                        "total_cells": sum(s['cell_count'] for s in sheet_list)
-                    }
+                        "total_cells": sum(s["cell_count"] for s in sheet_list),
+                    },
                 }
         except Exception as e:
             return {
                 "error": f"Failed to get sheet summary: {str(e)}",
-                "details": "File may be corrupted or not a valid Excel document"
+                "details": "File may be corrupted or not a valid Excel document",
             }
 
     @classmethod
     def get_xlsx_content(
-        cls, file_path: str, on_error: Optional[Callable[[str, Exception], None]] = None,
-        target_sheets: Optional[List[str]] = None
+        cls,
+        file_path: str,
+        on_error: Optional[Callable[[str, Exception], None]] = None,
+        target_sheets: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Excelファイルからシート名・セル番地付きでテキストを抽出します。"""
         results = []
@@ -411,7 +399,7 @@ class OfficeParser:
                 sheet_id_to_name = {}
                 with zp.open("xl/workbook.xml") as f:
                     xml_content = cls.encoding_manager.safe_decode(f.read()).text
-                    root = ET.fromstring(xml_content.encode('utf-8'))
+                    root = ET.fromstring(xml_content.encode("utf-8"))
                     for sheet in root.findall(".//s:sheet", cls.NAMESPACE):
                         s_id = sheet.get(f"{{{cls.NAMESPACE['r']}}}id")
                         s_name = sheet.get("name")
@@ -422,7 +410,7 @@ class OfficeParser:
                 rel_to_path = {}
                 with zp.open("xl/_rels/workbook.xml.rels") as f:
                     xml_content = cls.encoding_manager.safe_decode(f.read()).text
-                    root = ET.fromstring(xml_content.encode('utf-8'))
+                    root = ET.fromstring(xml_content.encode("utf-8"))
                     for rel in root.findall(".//rel:Relationship", cls.NAMESPACE):
                         r_id = rel.get("Id")
                         r_target = rel.get("Target")
@@ -447,8 +435,8 @@ class OfficeParser:
 
                     with zp.open(xml_path) as f:
                         xml_content = cls.encoding_manager.safe_decode(f.read()).text
-                        root = ET.fromstring(xml_content.encode('utf-8'))
-                        
+                        root = ET.fromstring(xml_content.encode("utf-8"))
+
                         for cell_elem in root.iter(tag_c):
                             current_cell_ref = cell_elem.get("r", "")
                             cell_type = cell_elem.get("t", "")
@@ -503,7 +491,7 @@ class OfficeParser:
 
         with zp.open("xl/sharedStrings.xml") as f:
             xml_content = cls.encoding_manager.safe_decode(f.read()).text
-            root = ET.fromstring(xml_content.encode('utf-8'))
+            root = ET.fromstring(xml_content.encode("utf-8"))
             for si_elem in root.iter(tag_si):
                 parts = []
                 for t_elem in si_elem.iter(tag_t):
@@ -520,7 +508,7 @@ class OfficeParser:
         current_parts: List[str] = []
         try:
             xml_content = cls.encoding_manager.safe_decode(f.read()).text
-            root = ET.fromstring(xml_content.encode('utf-8'))
+            root = ET.fromstring(xml_content.encode("utf-8"))
             for p_elem in root.iter(tag_p):
                 for t_elem in p_elem.iter(tag_t):
                     if t_elem.text:
@@ -538,7 +526,6 @@ class OfficeParser:
         cls, file_path: str, on_error: Optional[Callable[[str, Exception], None]] = None
     ) -> List[Dict[str, Any]]:
         """PowerPointファイルからスライド番号・ノート付きでテキストを抽出します。"""
-        import re
 
         results: List[Dict[str, Any]] = []
         try:

@@ -18,7 +18,7 @@ import json
 import os
 import sys
 import time
-from typing import Any, List, Optional
+from typing import List, Optional
 
 # プロジェクトルートをパスに追加して自作モジュールをインポート可能にする
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
