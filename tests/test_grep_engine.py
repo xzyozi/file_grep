@@ -242,6 +242,27 @@ class TestGrepEngine:
         assert any(".xlsm" in res.file_path for res in target_hits)
         assert any(".xlsx" in res.file_path for res in target_hits)
 
+        # --- PowerPointのテスト (.pptx, .pptm 両方検証) ---
+        for ext in ("pptx", "pptm"):
+            pptx_file = temp_test_files / f"test.{ext}"
+            with zipfile.ZipFile(pptx_file, 'w') as zp:
+                slide_xml = (
+                    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                    '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+                    'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+                    '<p:cSld><p:spTree><p:sp><p:txBody>'
+                    f'<a:p><a:r><a:t>Sample Slide {ext} content</a:t></a:r></a:p>'
+                    '</p:txBody></p:sp></p:spTree></p:cSld>'
+                    '</p:sld>'
+                )
+                zp.writestr('ppt/slides/slide1.xml', slide_xml)
+
+        results.clear()
+        engine.search(target_dir=str(temp_test_files), search_text="Slide", on_result=on_result)
+        # pptx と pptm の両方がヒットしていることを確認
+        assert any(".pptx" in res.file_path for res in results)
+        assert any(".pptm" in res.file_path for res in results)
+
     def test_exclude_extensions_parameter(self, tmp_path):
         """exclude_exts パラメータで特定拡張子のファイルが除外されることを確認する。"""
         engine = GrepEngine()
