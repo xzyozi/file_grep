@@ -50,6 +50,8 @@ class GrepEngine:
                 '.docm': OfficeParser,
                 '.xlsx': OfficeParser,
                 '.xlsm': OfficeParser,
+                '.pptx': OfficeParser,
+                '.pptm': OfficeParser,
             }
         except ImportError:
             return {}
@@ -235,14 +237,22 @@ class GrepEngine:
 
         # 通常のテキストファイルの処理 (メモリ効率に優れたストリーム読み込み)
         try:
-            # 1. バイナリ判定 (Null Byte Check)
+            # 1. バイナリ判定 (Null Byte Check) と エンコーディング推測用ヘッダー取得
             with open(file_path, 'rb') as f:
-                header = f.read(1024)
-                if b'\x00' in header:
+                header = f.read(1024 * 64) # 検出精度向上のため、少し多めに読み込む
+                if b'\x00' in header[:1024]:
                     return [] # バイナリと判定してスキップ
 
-            # 2. エンコーディング試行とストリーム検索
-            for enc in self.encodings:
+            # 2. EncodingManagerによる高精度エンコーディング判定
+            from src.grep.office_parser import EncodingManager
+            manager = EncodingManager(self.encodings)
+            detected = manager.detect_encoding(header)
+            
+            # 推測されたエンコーディング候補を先頭にした試行リストを作成
+            try_encodings = [detected.encoding] + [enc for enc in self.encodings if enc != detected.encoding]
+
+            # 3. エンコーディング試行とストリーム検索
+            for enc in try_encodings:
                 try:
                     with open(file_path, 'r', encoding=enc, errors='strict') as f:
                         for i, line in enumerate(f, 1):
